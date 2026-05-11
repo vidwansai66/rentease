@@ -24,6 +24,15 @@ connectDB().then(() => {
     ensureIndexes();
 });
 
+// Middleware
+app.use(cors({
+    origin: process.env.CLIENT_URL || 'http://localhost:8000',
+    credentials: true
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
 async function ensureIndexes() {
     try {
         const User = require('./models/User');
