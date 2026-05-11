@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | RentEase</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="../../css/variables.css">
+    <link rel="stylesheet" href="../../css/reset.css">
+    <link rel="stylesheet" href="../../css/global.css">
+    <link rel="stylesheet" href="../../css/components.css">
+    <link rel="stylesheet" href="../../css/animations.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <script src="../../js/admin-guard.js"></script>
+
+    <style>
+        body { background: var(--color-bg); display: flex; min-height: 100vh; }
+        
+        /* Dashboard Sidebar - Premium SaaS Style (Admin Theme) */
+        .admin-sidebar { 
+            width: var(--sidebar-width); 
+            background: #0F172A; /* Deep Slate for Admin */
+            display: flex; 
+            flex-direction: column; 
+            position: fixed; 
+            height: 100vh; 
+            z-index: var(--z-sticky); 
+            color: white;
+            padding: var(--space-8) 0;
+            transition: all var(--transition-base);
+        }
+
+        .admin-logo { 
+            padding: 0 var(--space-8) var(--space-8); 
+            border-bottom: 1px solid rgba(255,255,255,0.1); 
+            margin-bottom: var(--space-8); 
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: var(--font-display);
+        }
+
+        .admin-badge { 
+            background: var(--color-accent); 
+            color: #0F172A; 
+            font-size: 0.65rem; 
+            padding: 2px 8px; 
+            border-radius: var(--radius-sm); 
+            font-weight: 800; 
+            letter-spacing: 0.05em;
+        }
+
+        .nav-list { list-style: none; flex-grow: 1; padding: 0 var(--space-4); }
+        
+        .nav-item { 
+            display: flex; 
+            align-items: center; 
+            gap: var(--space-4); 
+            padding: var(--space-4) var(--space-6); 
+            color: rgba(255,255,255,0.6); 
+            border-radius: var(--radius-md);
+            transition: all var(--transition-fast);
+            margin-bottom: var(--space-1);
+            font-weight: 500;
+            text-decoration: none;
+        }
+
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-item.active { background: rgba(255,255,255,0.1); color: var(--color-accent); font-weight: 700; border-left: 4px solid var(--color-accent); }
+
+        .admin-main { 
+            margin-left: var(--sidebar-width); 
+            flex-grow: 1; 
+            padding: var(--space-12); 
+            max-width: 1400px;
+        }
+
+        /* KPI Cards */
+        .kpi-card { background: white; padding: var(--space-8); border-radius: var(--radius-lg); border: 1px solid var(--color-border); position: relative; }
+        .kpi-icon { position: absolute; top: 20px; right: 20px; font-size: 1.5rem; opacity: 0.1; }
+        .kpi-value { font-size: 2rem; font-weight: 700; color: var(--color-primary); margin: 12px 0; }
+        .trend-up { color: var(--color-success); font-size: 0.75rem; font-weight: 600; }
+
+        /* Custom Bar Chart */
+        .chart-container { background: white; border-radius: var(--radius-xl); border: 1px solid var(--color-border); padding: var(--space-10); margin-top: var(--space-8); }
+        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-10); }
+        .bar-chart { height: 300px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 var(--space-4); border-bottom: 1px solid var(--color-border); position: relative; }
+        .bar-wrapper { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; margin: 0 8px; position: relative; }
+        .bar { width: 100%; max-width: 40px; background: var(--color-primary); border-radius: 4px 4px 0 0; transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; position: relative; }
+        .bar:hover { background: var(--color-accent); }
+        .bar-label { position: absolute; bottom: -30px; font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600; }
+        
+        .chart-y-axis { position: absolute; left: 0; top: 0; bottom: 0; width: 60px; display: flex; flex-direction: column-reverse; justify-content: space-between; font-size: 0.7rem; color: var(--color-text-muted); padding-bottom: 30px; }
+
+        .tooltip { position: absolute; background: var(--color-primary); color: white; padding: 8px 12px; border-radius: 4px; font-size: 0.75rem; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 10; white-space: nowrap; }
+
+        /* Tables */
+        .admin-table { width: 100%; border-collapse: collapse; }
+        .admin-table th { text-align: left; padding: 16px; border-bottom: 1px solid var(--color-border); color: var(--color-text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+        .admin-table td { padding: 16px; border-bottom: 1px solid var(--color-surface-2); font-size: 0.9rem; }
+
+        .inventory-alert { background: rgba(231, 76, 60, 0.05); border: 1px solid rgba(231, 76, 60, 0.2); padding: 12px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+
+        @media (max-width: 1024px) {
+            .admin-main { margin-left: 0; }
+            .admin-sidebar { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <aside class="admin-sidebar">
+        <div class="admin-logo">
+            <span>RentEase</span>
+            <span class="admin-badge">ADMIN</span>
+        </div>
+        <nav class="nav-list">
+            <a href="/pages/admin/dashboard.html" class="nav-item active">📊 Dashboard</a>
+            <a href="/pages/admin/products.html" class="nav-item">🪑 Products</a>
+            <a href="/pages/admin/orders.html" class="nav-item">📦 Orders</a>
+            <a href="/pages/profile.html" class="nav-item">👤 My Profile</a>
+            <a href="/pages/admin/users.html" class="nav-item">👥 Users</a>
+            <a href="/pages/admin/maintenance.html" class="nav-item">🛠️ Maintenance</a>
+            <a href="/pages/admin/settings.html" class="nav-item">⚙️ Settings</a>
+        </nav>
+        <div style="padding: var(--space-6);">
+            <button class="btn btn-outline w-100" style="width: 100%; color: white; border-color: rgba(255,255,255,0.2);" onclick="Auth.logout()">Logout</button>
+        </div>
+    </aside>
+
+    <main class="admin-main">
+        <div class="flex-between mb-10">
+            <div>
+                <h1 style="font-family: var(--font-display);">Platform Overview</h1>
+                <p class="text-muted">Real-time performance analytics for RentEase</p>
+            </div>
+            <div class="flex-start gap-4">
+                <button class="btn btn-ghost">Export Data</button>
+                <div class="card px-4 py-2 flex-start gap-2 bg-white" style="border-radius: 8px;">
+                    <div class="dot dot-green"></div>
+                    <span style="font-weight: 600; font-size: 0.8rem;">Live Platform Stats</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="grid-4" id="kpiContainer">
+            <div class="kpi-card animate-fade-in delay-1">
+                <span class="kpi-icon">💰</span>
+                <div class="text-muted" style="font-size: 0.8rem;">Total Revenue</div>
+                <div class="kpi-value" id="kpiRevenue">₹0 L</div>
+                <div class="trend-up">↑ 12% vs last month</div>
+            </div>
+            <div class="kpi-card animate-fade-in delay-2">
+                <span class="kpi-icon">👥</span>
+                <div class="text-muted" style="font-size: 0.8rem;">Active Renters</div>
+                <div class="kpi-value" id="kpiRenters">0</div>
+                <div class="trend-up" id="kpiNewUsers">+0 this month</div>
+            </div>
+            <div class="kpi-card animate-fade-in delay-3">
+                <span class="kpi-icon">📦</span>
+                <div class="text-muted" style="font-size: 0.8rem;">Total Orders</div>
+                <div class="kpi-value" id="kpiOrders">0</div>
+                <div class="trend-up" id="kpiNewOrders">0 this month</div>
+            </div>
+            <div class="kpi-card animate-fade-in delay-4">
+                <span class="kpi-icon">🛠️</span>
+                <div class="text-muted" style="font-size: 0.8rem;">Open Tickets</div>
+                <div class="kpi-value" id="kpiTickets">0</div>
+                <div style="color: var(--color-danger); font-size: 0.75rem; font-weight: 600;">2 Urgent tickets</div>
+            </div>
+        </div>
+
+        <!-- Revenue Chart -->
+        <div class="chart-container animate-slide-up">
+            <div class="chart-header">
+                <h3>Monthly Revenue Trends</h3>
+                <select id="chartPeriod" class="btn btn-ghost btn-sm">
+                    <option>Last 12 Months</option>
+                    <option>Last 6 Months</option>
+                </select>
+            </div>
+            <div style="position: relative; padding-left: 60px;">
+                <div class="chart-y-axis" id="yAxis">
+                    <!-- Labels via JS -->
+                </div>
+                <div class="bar-chart" id="revenueChart">
+                    <!-- Bars via JS -->
+                </div>
+            </div>
+            <div class="tooltip" id="chartTooltip"></div>
+        </div>
+
+        <div class="grid-2 mt-8" style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-8);">
+            <!-- Recent Orders -->
+            <div class="card p-8">
+                <div class="flex-between mb-8">
+                    <h3>Recent Transactions</h3>
+                    <a href="#" class="btn btn-ghost btn-sm">View All Orders</a>
+                </div>
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Customer</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersTable">
+                        <!-- Content via JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Inventory Alerts -->
+            <div class="card p-8">
+                <h3 class="mb-8">Inventory Watchlist</h3>
+                <div id="inventoryAlerts">
+                    <!-- Content via JS -->
+                </div>
+                
+                <h3 class="mt-12 mb-6">Category Performance</h3>
+                <div class="flex-direction-column d-flex gap-4">
+                    <div class="p-4 bg-surface-2 rounded">
+                        <div class="flex-between mb-2"><strong>Sofas & Seating</strong><span>42%</span></div>
+                        <div style="height: 4px; background: var(--color-border); border-radius: 2px;"><div style="width: 42%; height: 100%; background: var(--color-primary); border-radius: 2px;"></div></div>
+                    </div>
+                    <div class="p-4 bg-surface-2 rounded">
+                        <div class="flex-between mb-2"><strong>Appliances</strong><span>28%</span></div>
+                        <div style="height: 4px; background: var(--color-border); border-radius: 2px;"><div style="width: 28%; height: 100%; background: var(--color-primary); border-radius: 2px;"></div></div>
+                    </div>
+                    <div class="p-4 bg-surface-2 rounded">
+                        <div class="flex-between mb-2"><strong>Beds</strong><span>18%</span></div>
+                        <div style="height: 4px; background: var(--color-border); border-radius: 2px;"><div style="width: 18%; height: 100%; background: var(--color-primary); border-radius: 2px;"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="../../js/api.js"></script>
+    <script src="../../js/toast.js"></script>
+    <script src="../../js/loader.js"></script>
+    <script src="../../js/auth.js"></script>
+
+    <script>
+        async function checkAdmin() {
+            try {
+                const res = await API.get('/auth/me');
+                if (res.data.user.role !== 'admin') {
+                    window.location.href = '/pages/login.html?redirect=admin';
+                }
+            } catch (err) {
+                window.location.href = '/pages/login.html?redirect=admin';
+            }
+        }
+
+        async function fetchDashboard() {
+            try {
+                const [statsRes, chartRes] = await Promise.all([
+                    API.get('/admin/stats'),
+                    API.get('/admin/revenue-chart')
+                ]);
+
+                const stats = statsRes.data;
+                const chartData = chartRes.data.chartData;
+
+                // Update KPIs
+                const formatLakhs = (val) => (val / 100000).toFixed(2);
+                document.getElementById('kpiRevenue').innerText = `₹${formatLakhs(stats.totalRevenue)} L`;
+                document.getElementById('kpiRenters').innerText = stats.activeRentals;
+                document.getElementById('kpiNewUsers').innerText = `+${stats.newUsers} this month`;
+                document.getElementById('kpiOrders').innerText = stats.totalOrders;
+                document.getElementById('kpiNewOrders').innerText = `${stats.ordersThisMonth} this month`;
+                document.getElementById('kpiTickets').innerText = stats.openTickets;
+
+                // Build Chart
+                renderChart(chartData);
+
+                // Build Orders Table
+                const table = document.getElementById('ordersTable');
+                table.innerHTML = stats.recentOrders.map(o => `
+                    <tr>
+                        <td class="font-bold">#${o.orderNumber.split('-')[2]}</td>
+                        <td>
+                            <div>${o.user.name}</div>
+                            <div class="text-muted" style="font-size: 0.7rem;">${o.user.email}</div>
+                        </td>
+                        <td class="font-bold">₹${o.pricing.grandTotal.toLocaleString()}</td>
+                        <td><span class="badge badge-success" style="font-size: 0.65rem;">${o.paymentStatus.toUpperCase()}</span></td>
+                        <td class="text-muted" style="font-size: 0.8rem;">${new Date(o.createdAt).toLocaleDateString()}</td>
+                        <td><button class="btn btn-ghost btn-sm">View</button></td>
+                    </tr>
+                `).join('');
+
+                // Build Inventory Alerts
+                const inventory = document.getElementById('inventoryAlerts');
+                inventory.innerHTML = stats.lowInventory.map(p => `
+                    <div class="inventory-alert">
+                        <div>
+                            <div class="font-bold" style="font-size: 0.85rem;">${p.name}</div>
+                            <div class="text-muted" style="font-size: 0.7rem;">Units Left: ${p.availableUnits}</div>
+                        </div>
+                        <span class="badge ${p.availableUnits === 0 ? 'badge-danger' : 'badge-warning'}" style="font-size: 0.6rem;">
+                            ${p.availableUnits === 0 ? 'CRITICAL' : 'LOW'}
+                        </span>
+                    </div>
+                `).join('');
+
+            } catch (err) {
+                Toast.error('Failed to load admin data');
+            }
+        }
+
+        function renderChart(data) {
+            const chart = document.getElementById('revenueChart');
+            const yAxis = document.getElementById('yAxis');
+            const tooltip = document.getElementById('chartTooltip');
+            
+            if (data.length === 0) return;
+
+            const maxRev = Math.max(...data.map(d => d.revenue));
+            const yLabels = [0, maxRev / 4, maxRev / 2, (maxRev * 3) / 4, maxRev];
+            
+            yAxis.innerHTML = yLabels.map(l => `<span>₹${(l/100000).toFixed(1)}L</span>`).join('');
+
+            chart.innerHTML = data.map((d, i) => `
+                <div class="bar-wrapper">
+                    <div class="bar" 
+                         style="height: 0%" 
+                         onmouseover="showTooltip(event, '${d.month}', ${d.revenue}, ${d.orders})" 
+                         onmouseout="hideTooltip()">
+                    </div>
+                    <div class="bar-label">${d.month}</div>
+                </div>
+            `).join('');
+
+            const bars = chart.querySelectorAll('.bar');
+            setTimeout(() => {
+                bars.forEach((bar, i) => {
+                    const height = maxRev > 0 ? (data[i].revenue / maxRev) * 100 : 0;
+                    bar.style.transition = `height 0.6s ease ${i * 50}ms`;
+                    bar.style.height = `${height}%`;
+                });
+            }, 100);
+        }
+
+        function showTooltip(e, month, rev, orders) {
+            const tooltip = document.getElementById('chartTooltip');
+            tooltip.style.opacity = '1';
+            tooltip.innerHTML = `<strong>${month}</strong><br>Rev: ₹${rev.toLocaleString()}<br>Orders: ${orders}`;
+            tooltip.style.left = `${e.pageX + 10}px`;
+            tooltip.style.top = `${e.pageY - 40}px`;
+        }
+
+        function hideTooltip() {
+            document.getElementById('chartTooltip').style.opacity = '0';
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAdmin();
+            fetchDashboard();
+        });
+    </script>
+</body>
+</html>

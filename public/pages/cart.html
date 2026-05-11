@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Cart | RentEase</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/reset.css">
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/animations.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+
+    <style>
+        .cart-layout { display: grid; grid-template-columns: 65% 35%; gap: var(--space-8); margin-top: var(--space-8); }
+        .cart-items { display: flex; flex-direction: column; gap: var(--space-4); }
+        
+        .cart-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-6);
+            background: white;
+            padding: var(--space-6);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--color-border);
+            transition: all 0.3s ease;
+        }
+
+        .cart-item img { width: 80px; height: 80px; border-radius: var(--radius-md); object-fit: cover; }
+        .item-info { flex-grow: 1; }
+        .qty-controls { display: flex; align-items: center; border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; }
+        .qty-btn { padding: 4px 12px; background: var(--color-surface-2); cursor: pointer; }
+        
+        .remove-btn { color: var(--color-danger); cursor: pointer; font-size: 0.875rem; font-weight: 600; padding: 4px 8px; border-radius: var(--radius-sm); }
+        .remove-btn:hover { background: rgba(231, 76, 60, 0.1); }
+
+        .summary-card { position: sticky; top: 100px; background: white; padding: var(--space-8); border-radius: var(--radius-xl); border: 1px solid var(--color-border); }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: var(--space-4); font-size: 1rem; }
+        .summary-total { border-top: 1px solid var(--color-border); padding-top: var(--space-6); margin-top: var(--space-6); font-size: 1.25rem; font-weight: 700; color: var(--color-primary); }
+
+        @media (max-width: 768px) {
+            .cart-layout { grid-template-columns: 1fr; }
+            .cart-item { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar" id="mainNavbar">
+        <div class="container flex-between">
+            <a href="/" class="nav-logo">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 9.5L12 3L21 9.5V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V9.5Z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 21V12H15V21" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Rent<strong>Ease</strong>
+            </a>
+            
+            <div class="flex-start gap-4">
+                <a href="/pages/cart.html" class="cart-icon-wrapper btn-ghost active" style="padding: 10px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+                    <span class="cart-count">0</span>
+                </a>
+                <div id="authLinks" class="btn-group"></div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-12">
+        <h1 class="mb-8">Your Cart <span id="cartBadgeCount" class="badge badge-success" style="vertical-align: middle;">0 Items</span></h1>
+
+        <div class="cart-layout" id="cartContent">
+            <!-- Items -->
+            <div class="cart-items" id="itemsList"></div>
+
+            <!-- Summary -->
+            <div class="summary-box">
+                <div class="summary-card">
+                    <h3 class="mb-6">Order Summary</h3>
+                    <div id="summaryDetails">
+                        <div class="summary-row"><span>Items Total</span><span id="sumSubtotal">₹0</span></div>
+                        <div class="summary-row"><span>Security Deposit</span><span id="sumDeposit">₹0</span></div>
+                        <div class="summary-row"><span>Delivery</span><span id="sumDelivery">FREE</span></div>
+                        <div class="summary-total"><span>Grand Total</span><span id="sumGrandTotal">₹0</span></div>
+                    </div>
+                    <p class="text-muted mt-4" style="font-size: 0.75rem;">Refundable security deposit is returned after your rental ends.</p>
+                    
+                    <div class="btn-group" style="flex-direction: column; width: 100%;">
+                        <button id="checkoutBtn" class="btn btn-primary btn-lg w-100" style="width: 100%;" onclick="proceedToCheckout()">Proceed to Checkout</button>
+                        <a href="/pages/products.html" class="btn btn-outline w-100" style="width: 100%; display: block; text-align: center;">Continue Shopping</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="flex-center flex-direction-column py-20 text-center" style="display:none;">
+            <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" stroke-width="1.5">
+                <path d="M20 12V20H4V12" /><path d="M22 7H2V12H22V7Z" /><path d="M12 22V12" /><path d="M12 7V2" />
+            </svg>
+            <h2 class="mt-8">Your cart is empty</h2>
+            <p class="text-muted mt-2">Looks like you haven't added anything to your cart yet.</p>
+            <a href="/pages/products.html" class="btn btn-primary mt-8">Explore Products</a>
+        </div>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/toast.js"></script>
+    <script src="../js/loader.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/cart.js"></script>
+
+    <script>
+        function renderCart() {
+            const cart = cartUtils.getCart();
+            const list = document.getElementById('itemsList');
+            const content = document.getElementById('cartContent');
+            const empty = document.getElementById('emptyState');
+            const badgeCount = document.getElementById('cartBadgeCount');
+
+            if (cart.length === 0) {
+                content.style.display = 'none';
+                empty.style.display = 'flex';
+                badgeCount.innerText = '0 Items';
+                return;
+            }
+
+            content.style.display = 'grid';
+            empty.style.display = 'none';
+            badgeCount.innerText = `${cartUtils.getCount()} Items`;
+
+            list.innerHTML = cart.map(item => `
+                <div class="cart-item" id="item_${item.productId}_${item.selectedPlan?.duration || 0}">
+                    <img src="${item.productImage || '/images/placeholder.png'}" alt="${item.productName || 'Product'}">
+                    <div class="item-info">
+                        <h4 style="margin-bottom: 4px;">${item.productName || 'Unknown Product'}</h4>
+                        <div style="font-size: 0.8rem; color: var(--color-text-muted);">Plan: ${item.selectedPlan?.label || 'Default Plan'}</div>
+                    </div>
+                    <div class="qty-controls">
+                        <button class="qty-btn" onclick="updateQty('${item.productId}', ${item.selectedPlan?.duration || 0}, -1)">-</button>
+                        <span class="px-4 font-bold" style="padding: 0 16px;">${item.quantity}</span>
+                        <button class="qty-btn" onclick="updateQty('${item.productId}', ${item.selectedPlan?.duration || 0}, 1)">+</button>
+                    </div>
+                    <div class="text-right" style="min-width: 100px; text-align: right;">
+                        <div class="font-bold">₹${((item.selectedPlan?.monthlyPrice || 0) * item.quantity).toLocaleString()}</div>
+                        <div style="font-size: 0.75rem; color: var(--color-text-muted);">₹${item.selectedPlan?.monthlyPrice || 0}/mo</div>
+                    </div>
+                    <button class="remove-btn" onclick="confirmRemove(this, '${item.productId}', ${item.selectedPlan?.duration || 0})">✕</button>
+                </div>
+            `).join('');
+
+            updateSummary();
+        }
+
+        function updateSummary() {
+            const totals = cartUtils.getTotals();
+            document.getElementById('sumSubtotal').innerText = `₹${totals.subtotal.toLocaleString()}`;
+            document.getElementById('sumDeposit').innerText = `₹${totals.totalDeposit.toLocaleString()}`;
+            document.getElementById('sumDelivery').innerText = totals.deliveryCharge === 0 ? 'FREE' : `₹${totals.deliveryCharge}`;
+            document.getElementById('sumGrandTotal').innerText = `₹${totals.grandTotal.toLocaleString()}`;
+            
+            const btn = document.getElementById('checkoutBtn');
+            if (totals.grandTotal === 0) {
+                btn.disabled = true;
+                btn.style.cursor = 'not-allowed';
+                btn.style.opacity = '0.5';
+            } else {
+                btn.disabled = false;
+                btn.style.cursor = 'pointer';
+                btn.style.opacity = '1';
+            }
+        }
+
+        function updateQty(id, duration, delta) {
+            const cart = cartUtils.getCart();
+            const item = cart.find(i => i.productId === id && i.selectedPlan.duration === duration);
+            if (item) {
+                cartUtils.updateQty(id, duration, item.quantity + delta);
+                renderCart();
+            }
+        }
+
+        function confirmRemove(btn, id, duration) {
+            if (btn.dataset.confirm === 'true') {
+                const el = document.getElementById(`item_${id}_${duration}`);
+                el.style.maxHeight = '0';
+                el.style.opacity = '0';
+                el.style.padding = '0';
+                el.style.margin = '0';
+                el.style.overflow = 'hidden';
+                
+                setTimeout(() => {
+                    cartUtils.removeItem(id, duration);
+                    renderCart();
+                }, 300);
+            } else {
+                btn.dataset.confirm = 'true';
+                btn.innerHTML = 'Sure? Yes';
+                btn.style.color = 'var(--color-primary)';
+                btn.style.background = 'var(--color-accent)';
+                
+                setTimeout(() => {
+                    if (btn) {
+                        btn.dataset.confirm = 'false';
+                        btn.innerHTML = '✕';
+                        btn.style.color = 'var(--color-danger)';
+                        btn.style.background = 'transparent';
+                    }
+                }, 3000);
+            }
+        }
+
+        function proceedToCheckout() {
+            window.location.href = '/pages/checkout.html';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCart();
+            Auth.init();
+        });
+    </script>
+</body>
+</html>

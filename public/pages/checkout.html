@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout | RentEase</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/reset.css">
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/animations.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+    <script src="../js/gamify.js"></script>
+
+    <style>
+        .checkout-layout { max-width: 900px; margin: 40px auto; }
+        
+        /* Progress Bar */
+        .progress-container { display: flex; justify-content: space-between; margin-bottom: 40px; position: relative; }
+        .progress-container::after { content: ''; position: absolute; top: 20px; left: 0; right: 0; height: 2px; background: var(--color-border); z-index: 0; }
+        .progress-bar { position: absolute; top: 20px; left: 0; height: 2px; background: var(--color-accent); z-index: 1; transition: width 0.3s ease; }
+        .step-circle { width: 40px; height: 40px; border-radius: 50%; background: white; border: 2px solid var(--color-border); display: flex; align-items: center; justify-content: center; z-index: 2; font-weight: 700; transition: all 0.3s; }
+        .step-circle.active { border-color: var(--color-accent); color: var(--color-accent); }
+        .step-circle.completed { background: var(--color-accent); border-color: var(--color-accent); color: white; }
+
+        /* Steps */
+        .step-content { display: none; background: white; padding: 40px; border-radius: var(--radius-xl); border: 1px solid var(--color-border); animation: fadeIn 0.4s ease; }
+        .step-content.active { display: block; }
+
+        /* Calendar */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; }
+        .cal-day-head { background: var(--color-surface-2); padding: 8px; text-align: center; font-size: 0.75rem; font-weight: 700; }
+        .cal-day { padding: 12px; text-align: center; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
+        .cal-day:hover:not(.disabled) { background: var(--color-surface-2); }
+        .cal-day.disabled { opacity: 0.2; cursor: not-allowed; }
+        .cal-day.selected { background: var(--color-accent) !important; color: white !important; font-weight: 700; }
+
+        /* Radio Cards */
+        .radio-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--space-4); }
+        .radio-card { border: 2px solid var(--color-border); border-radius: var(--radius-lg); padding: 20px; cursor: pointer; transition: all 0.2s; }
+        .radio-card.selected { border-color: var(--color-accent); background: rgba(244, 166, 35, 0.05); }
+
+        /* Success Screen */
+        .success-screen { text-align: center; padding: 60px 20px; display: none; }
+        .checkmark-svg { width: 100px; height: 100px; margin: 0 auto 30px; }
+        .checkmark-circle { stroke-dasharray: 500; stroke-dashoffset: 500; animation: dash 1s ease-in-out forwards; }
+        .checkmark-check { stroke-dasharray: 50; stroke-dashoffset: 50; animation: dash 0.5s 0.8s ease-in-out forwards; }
+        @keyframes dash { to { stroke-dashoffset: 0; } }
+
+        .floating-label { position: relative; margin-bottom: 20px; }
+        .floating-label input { width: 100%; padding: 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar" id="mainNavbar">
+        <div class="container flex-between">
+            <a href="/" class="nav-logo">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 9.5L12 3L21 9.5V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V9.5Z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 21V12H15V21" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Rent<strong>Ease</strong>
+            </a>
+            <div class="flex-start gap-4">
+                <a href="/pages/cart.html" class="btn btn-ghost btn-sm">← Back to Cart</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="checkout-layout" id="checkoutFlow">
+            <!-- Progress Bar -->
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar" style="width: 0%;"></div>
+                <div class="step-circle active" id="step_1">1</div>
+                <div class="step-circle" id="step_2">2</div>
+                <div class="step-circle" id="step_3">3</div>
+            </div>
+
+            <!-- Step 1: Delivery Details -->
+            <div class="step-content active" id="content_1">
+                <div class="flex-between mb-8">
+                    <h3>1. Delivery Address</h3>
+                    <button class="btn btn-ghost btn-sm" id="loadSavedAddress" onclick="loadSavedAddress()">Use Saved Address</button>
+                </div>
+                <form id="addressForm">
+                    <div class="grid-2">
+                        <div class="floating-label"><input type="text" id="fullName" placeholder="Full Name*" required></div>
+                        <div class="floating-label"><input type="tel" id="phone" placeholder="Phone Number*" required></div>
+                    </div>
+                    <div class="floating-label"><input type="text" id="street" placeholder="Street Address*" required></div>
+                    <div class="grid-2">
+                        <div class="floating-label"><input type="text" id="city" placeholder="City*" required></div>
+                        <div class="floating-label"><input type="text" id="state" placeholder="State*" required></div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="floating-label"><input type="text" id="pincode" placeholder="Pincode (6-digit)*" maxlength="6" required></div>
+                        <div class="floating-label"><input type="text" id="landmark" placeholder="Landmark (Optional)"></div>
+                    </div>
+                    <div class="flex-end mt-8">
+                        <button type="button" class="btn btn-primary" onclick="goToStep(2)">Continue to Schedule</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Step 2: Schedule -->
+            <div class="step-content" id="content_2">
+                <h3 class="mb-8">2. Schedule Your Delivery</h3>
+                
+                <div class="grid-2 gap-12" style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+                    <div>
+                        <div class="flex-between mb-4">
+                            <h4 id="calMonth">May 2026</h4>
+                            <div class="flex-start gap-2">
+                                <button class="btn-ghost" onclick="changeMonth(-1)">←</button>
+                                <button class="btn-ghost" onclick="changeMonth(1)">→</button>
+                            </div>
+                        </div>
+                        <div class="calendar-grid" id="calendar"></div>
+                    </div>
+                    <div>
+                        <h4 class="mb-4">Select Time Slot</h4>
+                        <div class="flex-direction-column d-flex gap-4">
+                            <div class="radio-card time-slot" onclick="selectSlot('9am-12pm', this)">
+                                <strong>9am - 12pm</strong>
+                                <div class="text-muted" style="font-size: 0.8rem;">Morning slot</div>
+                            </div>
+                            <div class="radio-card time-slot" onclick="selectSlot('12pm-3pm', this)">
+                                <strong>12pm - 3pm</strong>
+                                <div class="text-muted" style="font-size: 0.8rem;">Afternoon slot</div>
+                            </div>
+                            <div class="radio-card time-slot selected" onclick="selectSlot('3pm-6pm', this)">
+                                <strong>3pm - 6pm</strong>
+                                <div class="text-muted" style="font-size: 0.8rem;">Evening slot</div>
+                            </div>
+                            <div class="radio-card time-slot" onclick="selectSlot('6pm-9pm', this)">
+                                <strong>6pm - 9pm</strong>
+                                <div class="text-muted" style="font-size: 0.8rem;">Night slot</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex-between mt-12">
+                    <button class="btn btn-ghost" onclick="goToStep(1)">Back</button>
+                    <button class="btn btn-primary" onclick="goToStep(3)">Review & Pay</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Review & Pay -->
+            <div class="step-content" id="content_3">
+                <h3 class="mb-8">3. Review & Payment</h3>
+                
+                <div class="mb-8 p-6 bg-surface-2 rounded" style="border-radius: var(--radius-md);">
+                    <div class="flex-between mb-2">
+                        <strong>Delivery to:</strong>
+                        <button class="btn btn-ghost btn-sm" onclick="goToStep(1)">Edit</button>
+                    </div>
+                    <div id="reviewAddress" class="text-secondary">Address details here...</div>
+                    <div class="mt-4"><strong>Scheduled for:</strong> <span id="reviewSchedule">Date & Time</span></div>
+                </div>
+
+                <div class="mb-8">
+                    <h4 class="mb-4">Payment Method</h4>
+                    <div class="radio-grid">
+                        <div class="radio-card p-method selected" onclick="selectPayment('upi', this)">UPI</div>
+                        <div class="radio-card p-method" onclick="selectPayment('card', this)">Card</div>
+                        <div class="radio-card p-method" onclick="selectPayment('cod', this)">Cash on Delivery</div>
+                    </div>
+                </div>
+
+                <div id="cardDetails" class="mb-8" style="display:none;">
+                    <div class="floating-label"><input type="text" id="cardNumber" placeholder="Card Number (XXXX XXXX XXXX XXXX)" oninput="formatCard(this)"></div>
+                    <div class="grid-2">
+                        <input type="text" placeholder="MM/YY">
+                        <input type="password" placeholder="CVV">
+                    </div>
+                </div>
+
+                <div class="summary-total border-top pt-6" style="border-top: 1px solid var(--color-border);">
+                    <div class="flex-between mb-2"><span>Total Amount Due Today</span><span id="checkGrandTotal" class="font-bold text-primary" style="font-size: 1.5rem;">₹0</span></div>
+                    <label class="flex-start gap-2 mt-4 cursor-pointer">
+                        <input type="checkbox" id="termsCheck" onchange="togglePlaceOrder()"> <span>I agree to the Rental Terms & Conditions</span>
+                    </label>
+                </div>
+
+                <div class="flex-between mt-12">
+                    <button class="btn btn-ghost" onclick="goToStep(2)">Back</button>
+                    <button id="placeOrderBtn" class="btn btn-primary btn-lg" style="opacity: 0.5; cursor: not-allowed;" disabled onclick="handlePlaceOrder()">Place Order</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success Screen -->
+        <div class="success-screen animate-fade-in" id="successScreen">
+            <svg class="checkmark-svg" viewBox="0 0 52 52">
+                <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none" stroke="var(--color-success)" stroke-width="2"/>
+                <path class="checkmark-check" fill="none" stroke="var(--color-success)" stroke-width="2" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+            </svg>
+            <h1 class="mb-4">Order Placed Successfully!</h1>
+            <p class="text-muted mb-8">Thank you for choosing RentEase. Your space is about to get a major upgrade.</p>
+            <div class="card p-8 mb-8" style="background: var(--color-surface-2);">
+                <div class="mb-2 text-muted">Order Number</div>
+                <div class="font-bold" style="font-size: 2rem; color: var(--color-primary);" id="successOrderNum">#RE-2026-XXXX</div>
+                <div class="mt-4" id="successScheduleMsg">Your delivery is scheduled for May 15th between 3pm–6pm</div>
+            </div>
+            <div class="btn-group">
+                <a href="/pages/dashboard.html" class="btn btn-primary btn-lg">Track My Order</a>
+                <a href="/pages/products.html" class="btn btn-outline btn-lg">Continue Shopping</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/toast.js"></script>
+    <script src="../js/loader.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/cart.js"></script>
+
+    <script>
+        let currentStep = 1;
+        let selectedDate = null;
+        let selectedSlot = '3pm-6pm';
+        let selectedPayment = 'upi';
+        let calDate = new Date();
+
+        // Wizard Logic
+        function goToStep(step) {
+            if (step > currentStep) {
+                if (currentStep === 1 && !validateAddress()) return;
+                if (currentStep === 2 && !selectedDate) { Toast.warning('Please select a delivery date'); return; }
+            }
+
+            document.querySelectorAll('.step-content').forEach(s => s.classList.remove('active'));
+            document.getElementById(`content_${step}`).classList.add('active');
+            
+            document.querySelectorAll('.step-circle').forEach((c, i) => {
+                if (i + 1 < step) c.className = 'step-circle completed';
+                else if (i + 1 === step) c.className = 'step-circle active';
+                else c.className = 'step-circle';
+            });
+
+            document.getElementById('progressBar').style.width = `${(step - 1) * 50}%`;
+            currentStep = step;
+
+            if (step === 3) populateReview();
+        }
+
+        // Step 1 Address
+        async function loadSavedAddress() {
+            try {
+                const res = await API.get('/auth/me');
+                const addr = res.data.user.address;
+                if (addr && addr.street) {
+                    document.getElementById('fullName').value = res.data.user.name;
+                    document.getElementById('phone').value = res.data.user.phone;
+                    document.getElementById('street').value = addr.street;
+                    document.getElementById('city').value = addr.city;
+                    document.getElementById('state').value = addr.state;
+                    document.getElementById('pincode').value = addr.pincode;
+                    document.getElementById('landmark').value = addr.landmark || '';
+                    Toast.success('Address loaded!');
+                } else {
+                    Toast.info('No saved address found.');
+                }
+            } catch (e) {}
+        }
+
+        function validateAddress() {
+            const required = ['fullName', 'phone', 'street', 'city', 'state', 'pincode'];
+            for (let id of required) {
+                if (!document.getElementById(id).value.trim()) {
+                    Toast.error('Please fill in all required fields');
+                    document.getElementById(id).focus();
+                    return false;
+                }
+            }
+            if (!/^[6-9]\d{9}$/.test(document.getElementById('phone').value)) {
+                Toast.error('Please enter a valid Indian phone number');
+                return false;
+            }
+            if (!/^\d{6}$/.test(document.getElementById('pincode').value)) {
+                Toast.error('Please enter a valid 6-digit pincode');
+                return false;
+            }
+            return true;
+        }
+
+        // Step 2 Calendar
+        function renderCalendar() {
+            const cal = document.getElementById('calendar');
+            const monthHead = document.getElementById('calMonth');
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            
+            monthHead.innerText = `${months[calDate.getMonth()]} ${calDate.getFullYear()}`;
+            cal.innerHTML = ['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => `<div class="cal-day-head">${d}</div>`).join('');
+
+            const firstDay = new Date(calDate.getFullYear(), calDate.getMonth(), 1).getDay();
+            const daysInMonth = new Date(calDate.getFullYear(), calDate.getMonth() + 1, 0).getDate();
+            const minDate = new Date();
+            minDate.setDate(minDate.getDate() + 2);
+            minDate.setHours(0,0,0,0);
+
+            for (let i = 0; i < firstDay; i++) cal.innerHTML += '<div></div>';
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const date = new Date(calDate.getFullYear(), calDate.getMonth(), d);
+                const isDisabled = date < minDate;
+                const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString();
+                
+                cal.innerHTML += `
+                    <div class="cal-day ${isDisabled ? 'disabled' : ''} ${isSelected ? 'selected' : ''}" 
+                         onclick="${isDisabled ? '' : `selectDate('${date.toISOString()}')`}">
+                        ${d}
+                    </div>
+                `;
+            }
+        }
+
+        function selectDate(iso) {
+            selectedDate = new Date(iso);
+            renderCalendar();
+        }
+
+        function changeMonth(delta) {
+            calDate.setMonth(calDate.getMonth() + delta);
+            renderCalendar();
+        }
+
+        function selectSlot(slot, el) {
+            selectedSlot = slot;
+            document.querySelectorAll('.time-slot').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+
+        // Step 3 Review
+        function populateReview() {
+            const street = document.getElementById('street').value;
+            const city = document.getElementById('city').value;
+            const state = document.getElementById('state').value;
+            document.getElementById('reviewAddress').innerText = `${street}, ${city}, ${state}`;
+            document.getElementById('reviewSchedule').innerText = `${selectedDate.toLocaleDateString('en-IN', {day:'numeric', month:'long'})} | ${selectedSlot}`;
+            document.getElementById('checkGrandTotal').innerText = `₹${cartUtils.getTotals().grandTotal.toLocaleString()}`;
+        }
+
+        function selectPayment(method, el) {
+            selectedPayment = method;
+            document.querySelectorAll('.p-method').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+            document.getElementById('cardDetails').style.display = method === 'card' ? 'block' : 'none';
+        }
+
+        function formatCard(input) {
+            let v = input.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+            let matches = v.match(/\d{4,16}/g);
+            let match = matches && matches[0] || '';
+            let parts = [];
+            for (let i=0, len=match.length; i<len; i+=4) parts.push(match.substring(i, i+4));
+            if (parts.length) input.value = parts.join(' ');
+            else input.value = v;
+        }
+
+        function togglePlaceOrder() {
+            const check = document.getElementById('termsCheck');
+            const btn = document.getElementById('placeOrderBtn');
+            btn.disabled = !check.checked;
+            btn.style.opacity = check.checked ? '1' : '0.5';
+            btn.style.cursor = check.checked ? 'pointer' : 'not-allowed';
+        }
+
+        async function handlePlaceOrder() {
+            const btn = document.getElementById('placeOrderBtn');
+            btnLoader(btn);
+
+            const orderData = {
+                items: cartUtils.getCart(),
+                deliveryAddress: {
+                    fullName: document.getElementById('fullName').value,
+                    phone: document.getElementById('phone').value,
+                    street: document.getElementById('street').value,
+                    city: document.getElementById('city').value,
+                    state: document.getElementById('state').value,
+                    pincode: document.getElementById('pincode').value,
+                    landmark: document.getElementById('landmark').value
+                },
+                scheduledDelivery: {
+                    date: selectedDate.toISOString(),
+                    timeSlot: selectedSlot
+                },
+                paymentMethod: selectedPayment
+            };
+
+            try {
+                const res = await API.post('/orders', orderData);
+                const order = res.data.order;
+                
+                cartUtils.clearCart();
+                showSuccess(order);
+            } catch (err) {
+                btnLoaderDone(btn, false);
+                if (err.message.includes('Product not found')) {
+                    Toast.error('Some items in your cart are no longer available. We have cleared them for you.');
+                    cartUtils.clearCart();
+                    setTimeout(() => window.location.href = '/pages/products.html', 2000);
+                } else {
+                    Toast.error(err.message);
+                }
+            }
+        }
+
+        function showSuccess(order) {
+            document.getElementById('checkoutFlow').style.display = 'none';
+            document.getElementById('successScreen').style.display = 'block';
+            document.getElementById('successOrderNum').innerText = `#${order.orderNumber}`;
+            const dateStr = new Date(order.scheduledDelivery.date).toLocaleDateString('en-IN', {day:'numeric', month:'long'});
+            document.getElementById('successScheduleMsg').innerText = `Your delivery is scheduled for ${dateStr} between ${order.scheduledDelivery.timeSlot}`;
+            window.scrollTo(0,0);
+            Gamify.celebration(); // Celebrate the successful order!
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (cartUtils.getCart().length === 0) {
+                window.location.href = '/pages/cart.html';
+                return;
+            }
+            renderCalendar();
+            Auth.init();
+        });
+    </script>
+</body>
+</html>

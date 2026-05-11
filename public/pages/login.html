@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | RentEase</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/reset.css">
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/animations.css">
+    <style>
+        body { height: 100vh; overflow: hidden; display: flex; }
+        .left-panel {
+            width: 45%;
+            background: linear-gradient(135deg, #1A3C5E 0%, #0F2235 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: var(--space-20);
+            color: white;
+            text-align: center;
+        }
+        .right-panel {
+            width: 55%;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: var(--space-20);
+            overflow-y: auto;
+        }
+        .form-container { max-width: 450px; margin: 0 auto; width: 100%; }
+        .logo-box { margin-bottom: var(--space-12); }
+        .tagline { font-family: 'Playfair Display', serif; font-size: 2.5rem; margin-bottom: var(--space-8); }
+        .trust-badges { display: flex; flex-direction: column; gap: var(--space-6); text-align: left; margin-top: var(--space-12); }
+        .badge-item { display: flex; align-items: center; gap: var(--space-4); }
+        .badge-icon { width: 40px; height: 40px; background: rgba(255,255,255,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        
+        .floating-label { position: relative; margin-bottom: var(--space-6); }
+        .floating-label input { width: 100%; padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: 1rem; }
+        .floating-label label { position: absolute; left: var(--space-4); top: 50%; transform: translateY(-50%); transition: all 0.2s ease; pointer-events: none; color: var(--color-text-muted); }
+        .floating-label input:focus + label, .floating-label input:not(:placeholder-shown) + label { top: 0; left: var(--space-3); background: white; padding: 0 var(--space-1); font-size: 0.75rem; color: var(--color-primary); }
+        
+        .eye-toggle { position: absolute; right: var(--space-4); top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--color-text-muted); }
+        
+        .auth-footer { margin-top: var(--space-8); text-align: center; color: var(--color-text-secondary); }
+        .google-sso { margin-top: var(--space-8); padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; gap: var(--space-2); cursor: pointer; transition: all 0.2s; }
+        .google-sso:hover { background: var(--color-surface-2); }
+    </style>
+</head>
+<body>
+    <div class="left-panel animate-fade-in">
+        <div class="logo-box">
+            <svg width="48" height="48" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="32" height="32" rx="8" fill="var(--color-accent)"/>
+                <path d="M16 8L24 16L16 24L8 16L16 8Z" fill="var(--color-primary)"/>
+            </svg>
+        </div>
+        <h1 class="tagline">Furnish your space.<br>Pay monthly.</h1>
+        <div class="trust-badges">
+            <div class="badge-item">
+                <div class="badge-icon">📦</div>
+                <div><p style="color: white; margin:0; font-weight: 600;">Free Delivery & Setup</p><p style="color: rgba(255,255,255,0.6); margin:0; font-size: 0.875rem;">Within 24-48 hours</p></div>
+            </div>
+            <div class="badge-item">
+                <div class="badge-icon">🛠️</div>
+                <div><p style="color: white; margin:0; font-weight: 600;">Free Maintenance</p><p style="color: rgba(255,255,255,0.6); margin:0; font-size: 0.875rem;">Lifetime support included</p></div>
+            </div>
+            <div class="badge-item">
+                <div class="badge-icon">🔄</div>
+                <div><p style="color: white; margin:0; font-weight: 600;">Flexible Upgrades</p><p style="color: rgba(255,255,255,0.6); margin:0; font-size: 0.875rem;">Swap anytime you want</p></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="right-panel animate-fade-in delay-1">
+        <div class="form-container">
+            <h2 style="font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 2rem; margin-bottom: var(--space-2);">Welcome back</h2>
+            <p style="color: var(--color-text-secondary); margin-bottom: var(--space-10);">Please enter your details to login to your account.</p>
+            
+            <form id="loginForm">
+                <div class="floating-label">
+                    <input type="email" id="emailInput" placeholder=" " required>
+                    <label for="emailInput">Email Address</label>
+                </div>
+                <div class="floating-label">
+                    <input type="password" id="passwordInput" placeholder=" " required>
+                    <label for="passwordInput">Password</label>
+                    <span class="eye-toggle" onclick="togglePassword()">👁️</span>
+                </div>
+                
+                <div class="flex-between" style="margin-bottom: var(--space-8);">
+                    <label class="flex-start gap-2" style="cursor: pointer;">
+                        <input type="checkbox"> <span style="font-size: 0.875rem;">Remember me</span>
+                    </label>
+                    <a href="#" style="font-size: 0.875rem; color: var(--color-primary); font-weight: 600;">Forgot password?</a>
+                </div>
+                
+                <button type="submit" id="submitBtn" class="btn btn-primary btn-lg w-100" style="width: 100%;">Sign In</button>
+            </form>
+            
+            <div class="divider" style="margin: var(--space-8) 0;">OR</div>
+            
+            <div class="google-sso" style="margin-top: 0;">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18">
+                <span style="font-size: 0.875rem; font-weight: 600;">Continue with Google</span>
+            </div>
+            
+            <p class="auth-footer">Don't have an account? <a href="register.html" style="color: var(--color-primary); font-weight: 700;">Sign up for free</a></p>
+        </div>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/toast.js"></script>
+    <script src="../js/loader.js"></script>
+    <script src="../js/auth.js"></script>
+    <script>
+        function togglePassword() {
+            const input = document.getElementById('passwordInput');
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+    </script>
+</body>
+</html>

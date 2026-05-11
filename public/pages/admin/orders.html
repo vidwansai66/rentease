@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Management | RentEase Admin</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="../../css/variables.css">
+    <link rel="stylesheet" href="../../css/reset.css">
+    <link rel="stylesheet" href="../../css/global.css">
+    <link rel="stylesheet" href="../../css/components.css">
+    <link rel="stylesheet" href="../../css/animations.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <script src="../../js/admin-guard.js"></script>
+
+    <style>
+        body { background: var(--color-bg); display: flex; min-height: 100vh; overflow-x: hidden; }
+        
+        /* Dashboard Sidebar - Premium SaaS Style (Admin Theme) */
+        .admin-sidebar { 
+            width: var(--sidebar-width); 
+            background: #0F172A; 
+            display: flex; 
+            flex-direction: column; 
+            position: fixed; 
+            height: 100vh; 
+            z-index: var(--z-sticky); 
+            color: white;
+            padding: var(--space-8) 0;
+            transition: all var(--transition-base);
+        }
+
+        .admin-logo { 
+            padding: 0 var(--space-8) var(--space-8); 
+            border-bottom: 1px solid rgba(255,255,255,0.1); 
+            margin-bottom: var(--space-8); 
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: var(--font-display);
+        }
+
+        .admin-badge { 
+            background: var(--color-accent); 
+            color: #0F172A; 
+            font-size: 0.65rem; 
+            padding: 2px 8px; 
+            border-radius: var(--radius-sm); 
+            font-weight: 800; 
+            letter-spacing: 0.05em;
+        }
+
+        .nav-list { list-style: none; flex-grow: 1; padding: 0 var(--space-4); }
+        
+        .nav-item { 
+            display: flex; 
+            align-items: center; 
+            gap: var(--space-4); 
+            padding: var(--space-4) var(--space-6); 
+            color: rgba(255,255,255,0.6); 
+            border-radius: var(--radius-md);
+            transition: all var(--transition-fast);
+            margin-bottom: var(--space-1);
+            font-weight: 500;
+            text-decoration: none;
+        }
+
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-item.active { background: rgba(255,255,255,0.1); color: var(--color-accent); font-weight: 700; border-left: 4px solid var(--color-accent); }
+
+        .admin-main { 
+            margin-left: var(--sidebar-width); 
+            flex-grow: 1; 
+            padding: var(--space-12); 
+            width: calc(100% - var(--sidebar-width)); 
+        }
+
+        /* Stats Strip */
+        .stats-strip { display: flex; gap: 12px; margin-bottom: 24px; overflow-x: auto; padding-bottom: 8px; }
+        .stat-pill { background: white; padding: 12px 20px; border-radius: 50px; border: 1px solid var(--color-border); cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 8px; font-weight: 600; transition: all 0.2s; }
+        .stat-pill:hover, .stat-pill.active { border-color: var(--color-accent); box-shadow: var(--shadow-md); transform: translateY(-2px); }
+        .stat-pill.active { background: var(--color-accent); color: var(--color-primary); }
+
+        /* Order Table */
+        .orders-table-card { background: white; border-radius: var(--radius-xl); border: 1px solid var(--color-border); overflow: hidden; }
+        .admin-table { width: 100%; border-collapse: collapse; }
+        .admin-table th { background: var(--color-surface-2); text-align: left; padding: 16px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--color-text-muted); }
+        .admin-table td { padding: 16px; border-bottom: 1px solid var(--color-surface-2); font-size: 0.875rem; vertical-align: middle; }
+        
+        .row-expanded { background: var(--color-surface-2); }
+        .mini-detail { padding: 20px; border-radius: 8px; background: white; margin: 10px 16px; border: 1px solid var(--color-border); }
+
+        /* Status Select Overlay */
+        .status-select-container { position: relative; display: inline-block; }
+        .status-badge-click { cursor: pointer; }
+
+        /* Detail Panel */
+        .detail-panel-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: none; backdrop-filter: blur(4px); }
+        .detail-panel { position: fixed; top: 0; right: 0; width: 600px; height: 100%; background: white; z-index: 1001; transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; box-shadow: -10px 0 30px rgba(0,0,0,0.1); }
+        .detail-panel.open { transform: translateX(0); }
+        .panel-header { padding: var(--space-8); border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; }
+        .panel-content { flex-grow: 1; overflow-y: auto; padding: var(--space-8); }
+        
+        .section-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--color-text-muted); font-weight: 700; margin-bottom: 16px; margin-top: 32px; border-bottom: 1px solid var(--color-surface-2); padding-bottom: 8px; }
+
+        .timeline { position: relative; padding-left: 30px; }
+        .timeline::before { content: ''; position: absolute; left: 14px; top: 0; bottom: 0; width: 2px; background: var(--color-border); }
+        .timeline-item { position: relative; margin-bottom: 24px; }
+        .timeline-circle { position: absolute; left: -21px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: white; border: 2px solid var(--color-border); z-index: 2; }
+        .timeline-item.active .timeline-circle { background: var(--color-success); border-color: var(--color-success); }
+    </style>
+</head>
+<body>
+
+    <aside class="admin-sidebar" id="sidebar"></aside>
+
+    <main class="admin-main">
+        <div class="flex-between mb-8">
+            <div>
+                <h1 style="font-family: var(--font-display);">Order Management</h1>
+                <p class="text-muted" id="orderCount">Total Orders: 0</p>
+            </div>
+            <button class="btn btn-primary" onclick="exportCSV()">📊 Export CSV</button>
+        </div>
+
+        <!-- Stats Strip -->
+        <div class="stats-strip" id="statsStrip">
+            <div class="stat-pill active" onclick="setStatusFilter('', this)"><span>All</span> <small id="count_all">0</small></div>
+            <div class="stat-pill" onclick="setStatusFilter('placed', this)"><span>Placed</span> <small id="count_placed">0</small></div>
+            <div class="stat-pill" onclick="setStatusFilter('confirmed', this)"><span>Confirmed</span> <small id="count_confirmed">0</small></div>
+            <div class="stat-pill" onclick="setStatusFilter('out-for-delivery', this)"><span>Out for Delivery</span> <small id="count_out">0</small></div>
+            <div class="stat-pill" onclick="setStatusFilter('delivered', this)"><span>Delivered</span> <small id="count_delivered">0</small></div>
+            <div class="stat-pill" onclick="setStatusFilter('cancelled', this)"><span>Cancelled</span> <small id="count_cancelled">0</small></div>
+        </div>
+
+        <!-- Filters -->
+        <div class="card p-6 mb-8 flex-between gap-6">
+            <div class="flex-start gap-4 flex-grow">
+                <input type="text" id="searchInput" placeholder="Order #, name or email..." style="max-width: 300px;" oninput="debounce(fetchOrders, 300)()">
+                <input type="date" id="startDate" onchange="fetchOrders()">
+                <input type="date" id="endDate" onchange="fetchOrders()">
+                <input type="text" id="cityFilter" placeholder="Filter by City..." oninput="debounce(fetchOrders, 300)()">
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="fetchOrders()">🔄 Refresh</button>
+        </div>
+
+        <!-- Table -->
+        <div class="orders-table-card animate-fade-in">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Order #</th>
+                        <th>Customer</th>
+                        <th>Items</th>
+                        <th>Scheduled</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="ordersBody">
+                    <!-- Loaded via JS -->
+                </tbody>
+            </table>
+            <div class="p-6 border-top flex-between" id="pagination">
+                <!-- Pagination via JS -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Detail Panel -->
+    <div class="detail-panel-backdrop" id="panelBackdrop" onclick="closePanel()"></div>
+    <div class="detail-panel" id="detailPanel">
+        <div class="panel-header">
+            <h2 id="orderNum">Order #RE-2026-XXXX</h2>
+            <button class="btn-ghost" onclick="closePanel()">✕</button>
+        </div>
+        <div class="panel-content" id="panelContent">
+            <!-- Loaded via JS -->
+        </div>
+        <div class="p-8 border-top flex-between gap-4" id="panelActions">
+            <!-- Buttons via JS -->
+        </div>
+    </div>
+
+    <script src="../../js/api.js"></script>
+    <script src="../../js/toast.js"></script>
+    <script src="../../js/loader.js"></script>
+    <script src="../../js/auth.js"></script>
+    <script src="../../js/utils.js"></script>
+
+    <script>
+        let currentStatusFilter = '';
+        let allOrders = [];
+        let currentOrder = null;
+
+        async function fetchOrders() {
+            const search = document.getElementById('searchInput').value;
+            const start = document.getElementById('startDate').value;
+            const end = document.getElementById('endDate').value;
+            const city = document.getElementById('cityFilter').value;
+            
+            try {
+                const res = await API.get(`/admin/orders?status=${currentStatusFilter}&search=${search}&startDate=${start}&endDate=${end}&city=${city}`);
+                allOrders = res.data.orders;
+                renderOrders();
+                document.getElementById('orderCount').innerText = `Total Orders: ${res.data.totalCount}`;
+                updateStatsStrip();
+            } catch (err) {}
+        }
+
+        async function updateStatsStrip() {
+            try {
+                const res = await API.get('/admin/stats');
+                const s = res.data;
+                const sc = s.statusCounts;
+                document.getElementById('count_all').innerText = s.totalOrders || 0;
+                document.getElementById('count_placed').innerText = sc.placed || 0;
+                document.getElementById('count_confirmed').innerText = sc.confirmed || 0;
+                document.getElementById('count_out').innerText = sc['out-for-delivery'] || 0;
+                document.getElementById('count_delivered').innerText = sc.delivered || 0;
+                document.getElementById('count_cancelled').innerText = sc.cancelled || 0;
+            } catch (e) {}
+        }
+
+        function setStatusFilter(status, btn) {
+            currentStatusFilter = status;
+            document.querySelectorAll('.stat-pill').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            fetchOrders();
+        }
+
+        function renderOrders() {
+            const body = document.getElementById('ordersBody');
+            body.innerHTML = allOrders.map(o => `
+                <tr id="row_${o._id}">
+                    <td class="font-bold">#${o.orderNumber.split('-')[2]}</td>
+                    <td>
+                        <div class="font-bold">${o.user?.name || 'Unknown'}</div>
+                        <div class="text-muted" style="font-size: 0.7rem;">${o.user?.email || ''}</div>
+                    </td>
+                    <td>${o.items.length} Items</td>
+                    <td>
+                        <div style="font-size: 0.8rem;">${new Date(o.scheduledDelivery.date).toLocaleDateString('en-IN', {day:'numeric', month:'short'})}</div>
+                        <div class="text-muted" style="font-size: 0.7rem;">${o.scheduledDelivery.timeSlot}</div>
+                    </td>
+                    <td class="font-bold">₹${o.pricing.grandTotal.toLocaleString()}</td>
+                    <td><span class="badge ${getStatusBadge(o.orderStatus)} status-badge-click" onclick="promptStatusChange('${o._id}', '${o.orderStatus}')">${o.orderStatus.toUpperCase()}</span></td>
+                    <td>
+                        <div class="flex-start gap-2">
+                            <button class="btn btn-ghost btn-sm" onclick="viewOrder('${o._id}')">View</button>
+                            <button class="btn btn-ghost btn-sm" onclick="toggleExpand('${o._id}')">⌄</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr id="expand_${o._id}" style="display:none;" class="row-expanded">
+                    <td colspan="7">
+                        <div class="mini-detail flex-between">
+                            <div>
+                                <strong>Items:</strong> ${o.items.map(i => i.productName).join(', ')}
+                            </div>
+                            <div>
+                                <strong>Address:</strong> ${o.deliveryAddress.city}, ${o.deliveryAddress.state}
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function getStatusBadge(status) {
+            const map = { 'placed': 'badge-info', 'confirmed': 'badge-warning', 'out-for-delivery': 'badge-warning', 'delivered': 'badge-success', 'active': 'badge-success', 'cancelled': 'badge-danger' };
+            return map[status] || 'badge-outline';
+        }
+
+        function toggleExpand(id) {
+            const row = document.getElementById(`expand_${id}`);
+            const main = document.getElementById(`row_${id}`);
+            const isVisible = row.style.display !== 'none';
+            row.style.display = isVisible ? 'none' : 'table-row';
+            main.classList.toggle('row-expanded', !isVisible);
+        }
+
+        async function viewOrder(id) {
+            try {
+                const res = await API.get(`/admin/orders/${id}`);
+                currentOrder = res.data.order;
+                renderPanel(currentOrder);
+                document.getElementById('panelBackdrop').style.display = 'block';
+                document.getElementById('detailPanel').classList.add('open');
+            } catch (err) {}
+        }
+
+        function renderPanel(o) {
+            document.getElementById('orderNum').innerText = `Order #${o.orderNumber}`;
+            const content = document.getElementById('panelContent');
+            content.innerHTML = `
+                <div class="animate-fade-in">
+                    <div class="badge ${o.paymentStatus === 'paid' ? 'badge-success' : 'badge-warning'} mb-4">${o.paymentStatus.toUpperCase()}</div>
+                    
+                    <div class="section-title">Customer Information</div>
+                    <div class="flex-direction-column d-flex gap-2">
+                        <div><strong>${o.user.name}</strong></div>
+                        <div class="text-muted">📧 ${o.user.email}</div>
+                        <div class="text-muted">📞 ${o.user.phone}</div>
+                    </div>
+
+                    <div class="section-title">Order Items</div>
+                    <div class="flex-direction-column d-flex gap-4">
+                        ${o.items.map(i => `
+                            <div class="flex-start gap-4 p-3 bg-surface-2 rounded">
+                                <img src="${i.product.images[0]}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+                                <div>
+                                    <div class="font-bold" style="font-size: 0.9rem;">${i.productName}</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">${i.selectedPlan.label} · ₹${i.selectedPlan.monthlyPrice}/mo</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div class="section-title">Delivery & Pricing</div>
+                    <div class="mb-4">
+                        <strong>Address:</strong><br>
+                        ${o.deliveryAddress.street}, ${o.deliveryAddress.city}, ${o.deliveryAddress.state} - ${o.deliveryAddress.pincode}<br>
+                        <small>Landmark: ${o.deliveryAddress.landmark || 'None'}</small>
+                    </div>
+                    <div class="card p-4 bg-surface-2">
+                        <div class="flex-between mb-2"><span>Subtotal</span><span>₹${o.pricing.subtotal.toLocaleString()}</span></div>
+                        <div class="flex-between mb-2"><span>Deposit</span><span>₹${o.pricing.totalDeposit.toLocaleString()}</span></div>
+                        <div class="flex-between mb-2"><span>Delivery</span><span>₹${o.pricing.deliveryCharge.toLocaleString()}</span></div>
+                        <div class="flex-between font-bold pt-2 border-top"><span>Grand Total</span><span>₹${o.pricing.grandTotal.toLocaleString()}</span></div>
+                    </div>
+
+                    <div class="section-title">Timeline</div>
+                    <div class="timeline">
+                        ${o.statusHistory.map(h => `
+                            <div class="timeline-item active">
+                                <div class="timeline-circle"></div>
+                                <div class="font-bold">${h.status.toUpperCase()}</div>
+                                <div class="text-muted" style="font-size: 0.7rem;">${new Date(h.timestamp).toLocaleString()}</div>
+                                ${h.note ? `<div class="mt-1" style="font-size: 0.8rem;">Note: ${h.note}</div>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('panelActions').innerHTML = `
+                <button class="btn btn-outline" onclick="generateInvoice(currentOrder)">🖨️ Print Invoice</button>
+                <button class="btn btn-primary" onclick="promptStatusChange('${o._id}', '${o.orderStatus}')">Update Status</button>
+            `;
+        }
+
+        async function promptStatusChange(id, current) {
+            const transitions = { 'placed': ['confirmed', 'cancelled'], 'confirmed': ['out-for-delivery', 'cancelled'], 'out-for-delivery': ['delivered', 'cancelled'], 'delivered': ['active'], 'active': ['cancelled'] };
+            const options = transitions[current] || [];
+            if (options.length === 0) return Toast.info('No further status changes available');
+
+            const next = prompt(`Select next status:\n${options.join(', ')}`, options[0]);
+            if (!next || !options.includes(next)) return;
+            const note = prompt('Enter a note for this status change (optional):');
+
+            try {
+                await API.put(`/admin/orders/${id}/status`, { newStatus: next, note });
+                Toast.success('Status updated!');
+                fetchOrders();
+                if (currentOrder && currentOrder._id === id) viewOrder(id);
+            } catch (err) {
+                Toast.error(err.message);
+            }
+        }
+
+        function generateInvoice(order) {
+            const html = `<!DOCTYPE html><html><head><title>Invoice ${order.orderNumber}</title>
+            <style>
+                body{font-family:Arial,sans-serif;max-width:800px;margin:40px auto;color:#1A202C;font-size:14px}
+                .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1A3C5E;padding-bottom:20px;margin-bottom:24px}
+                .logo{font-size:24px;font-weight:bold;color:#1A3C5E}
+                table{width:100%;border-collapse:collapse;margin:20px 0}
+                th{background:#F8F9FC;text-align:left;padding:10px 12px;border:1px solid #E2E8F0;font-weight:600}
+                td{padding:10px 12px;border:1px solid #E2E8F0}
+                .total-row{font-weight:bold;background:#EBF4FF}
+                .footer{margin-top:40px;padding-top:16px;border-top:1px solid #E2E8F0;font-size:12px;color:#718096;text-align:center}
+                @media print{body{margin:0}}
+            </style></head><body>
+            <div class="header">
+                <div><div class="logo">RentEase</div><p>rentease.in | support@rentease.in | Hyderabad</p></div>
+                <div style="text-align:right"><h2 style="margin:0">RENTAL INVOICE</h2><p>Invoice #${order.orderNumber}</p><p>${new Date(order.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}</p></div>
+            </div>
+            <div style="margin-bottom:20px"><strong>Bill To:</strong> ${order.user.name}<br>${order.user.email} | ${order.user.phone}<br>${order.deliveryAddress.street}, ${order.deliveryAddress.city}, ${order.deliveryAddress.state} - ${order.deliveryAddress.pincode}</div>
+            <table>
+                <thead><tr><th>Product</th><th>Rental Plan</th><th>Qty</th><th>Monthly Rent</th><th>Security Deposit</th></tr></thead>
+                <tbody>
+                ${order.items.map(i=>`<tr><td>${i.productName}</td><td>${i.selectedPlan.label}</td><td>${i.quantity}</td><td>₹${i.selectedPlan.monthlyPrice.toLocaleString('en-IN')}</td><td>₹${i.securityDeposit.toLocaleString('en-IN')}</td></tr>`).join('')}
+                <tr class="total-row"><td colspan="3"><strong>Grand Total Due Today</strong></td><td colspan="2"><strong>₹${order.pricing.grandTotal.toLocaleString('en-IN')}</strong></td></tr>
+                </tbody>
+            </table>
+            <p><strong>Scheduled Delivery:</strong> ${new Date(order.scheduledDelivery.date).toLocaleDateString('en-IN')} between ${order.scheduledDelivery.timeSlot}</p>
+            <div class="footer">This is a system-generated invoice. RentEase Pvt Ltd, Hyderabad, Telangana, India.</div>
+            </body></html>`;
+            const w = window.open('', '_blank'); w.document.write(html); w.document.close(); setTimeout(()=>w.print(), 500);
+        }
+
+        function exportCSV() {
+            if (allOrders.length === 0) return Toast.info('No orders to export');
+            const headers = ['Order #','Customer','Email','Phone','Items','Subtotal','Deposit','Delivery','Grand Total','Status','Payment','Delivery Date','City'];
+            const rows = allOrders.map(o => [
+                o.orderNumber, o.user?.name||'', o.user?.email||'', o.user?.phone||'',
+                o.items.length, o.pricing.subtotal, o.pricing.totalDeposit, o.pricing.deliveryCharge, o.pricing.grandTotal,
+                o.orderStatus, o.paymentMethod||'',
+                new Date(o.scheduledDelivery?.date).toLocaleDateString('en-IN'),
+                o.deliveryAddress?.city||''
+            ]);
+            const csvContent = [headers, ...rows].map(r => r.map(v => '"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+            const blob = new Blob(['\uFEFF'+csvContent], {type:'text/csv;charset=utf-8;'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href=url; a.download='rentease-orders-'+new Date().toISOString().split('T')[0]+'.csv';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            setTimeout(()=>URL.revokeObjectURL(url), 1000);
+        }
+
+        function closePanel() {
+            document.getElementById('detailPanel').classList.remove('open');
+            setTimeout(() => document.getElementById('panelBackdrop').style.display = 'none', 400);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Sidebar Init
+            const sidebar = document.getElementById('sidebar');
+            sidebar.innerHTML = `
+                <div class="admin-logo"><span>RentEase</span><span class="admin-badge">ADMIN</span></div>
+                <nav class="nav-list">
+                    <a href="/pages/admin/dashboard.html" class="nav-item">📊 Dashboard</a>
+                    <a href="/pages/admin/products.html" class="nav-item">🪑 Products</a>
+                    <a href="/pages/admin/orders.html" class="nav-item active">📦 Orders</a>
+                    <a href="/pages/profile.html" class="nav-item">👤 My Profile</a>
+                    <a href="/pages/admin/users.html" class="nav-item">👥 Users</a>
+                    <a href="/pages/admin/maintenance.html" class="nav-item">🛠️ Maintenance</a>
+                </nav>
+                <div style="padding: 0 var(--space-6) var(--space-6);">
+                    <button class="btn btn-outline" style="width: 100%; border-color: rgba(255,255,255,0.2); color: white;" onclick="Auth.logout()">Logout</button>
+                </div>
+            `;
+            Auth.init();
+            fetchOrders();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Details | RentEase</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/reset.css">
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/animations.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+
+    <style>
+        .detail-layout { display: grid; grid-template-columns: 60% 40%; gap: var(--space-12); margin-top: var(--space-8); }
+        
+        /* Gallery */
+        .gallery-container { position: sticky; top: 100px; }
+        .main-image-wrapper { aspect-ratio: 1/1; border-radius: var(--radius-lg); overflow: hidden; background: var(--color-surface-2); margin-bottom: var(--space-4); border: 1px solid var(--color-border); }
+        .main-image-wrapper img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
+        .main-image-wrapper img:hover { transform: scale(1.03); }
+        
+        .thumbnails { display: flex; gap: var(--space-4); }
+        .thumb { width: 80px; height: 80px; border-radius: var(--radius-md); overflow: hidden; cursor: pointer; border: 2px solid transparent; opacity: 0.6; transition: all 0.2s; }
+        .thumb.active { border-color: var(--color-accent); opacity: 1; }
+        .thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* Info Section */
+        .info-header { margin-bottom: var(--space-8); }
+        .info-header h1 { font-family: var(--font-display); font-size: 2.5rem; margin: var(--space-2) 0; }
+        
+        .availability-badge { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.875rem; margin-bottom: var(--space-4); }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .dot-green { background: var(--color-success); }
+        .dot-amber { background: var(--color-warning); animation: pulse 2s infinite; }
+        .dot-red { background: var(--color-danger); }
+
+        /* Plan Selector */
+        .plan-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-8); }
+        .plan-card { border: 2px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-4); cursor: pointer; transition: all 0.2s; position: relative; }
+        .plan-card.active { border-color: var(--color-accent); background: rgba(244, 166, 35, 0.05); }
+        .plan-card .discount { position: absolute; top: -10px; right: 10px; background: var(--color-accent); color: var(--color-primary); font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; }
+        .plan-card .popular { position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%); background: var(--color-primary); color: white; font-size: 0.6rem; padding: 2px 8px; border-radius: 4px; }
+
+        /* Price Box */
+        .price-summary { background: var(--color-surface-2); border-radius: var(--radius-xl); padding: var(--space-8); margin-bottom: var(--space-8); }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: var(--space-2); }
+        .summary-total { border-top: 1px solid var(--color-border); margin-top: var(--space-4); padding-top: var(--space-4); font-weight: 700; font-size: 1.25rem; }
+
+        /* Tabs */
+        .tabs { display: flex; gap: var(--space-8); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-6); }
+        .tab-btn { padding-bottom: var(--space-2); cursor: pointer; font-weight: 600; color: var(--color-text-muted); border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: var(--color-primary); border-color: var(--color-accent); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Related Products */
+        .related-section { margin-top: var(--space-20); padding-top: var(--space-20); border-top: 1px solid var(--color-border); }
+
+        /* Cart Sidebar */
+        .cart-sidebar { position: fixed; top: 0; right: 0; width: 400px; height: 100%; background: white; z-index: 2000; transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: -10px 0 40px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
+        .cart-sidebar.open { transform: translateX(0); }
+        .cart-sidebar-header { padding: var(--space-6); border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; }
+        .cart-sidebar-content { flex-grow: 1; overflow-y: auto; padding: var(--space-6); }
+        .cart-sidebar-footer { padding: var(--space-6); border-top: 1px solid var(--color-border); background: var(--color-surface-2); }
+        .cart-item-mini { display: flex; gap: var(--space-4); margin-bottom: var(--space-6); padding-bottom: var(--space-4); border-bottom: 1px solid var(--color-surface-2); }
+        .cart-item-mini img { width: 64px; height: 64px; border-radius: var(--radius-md); object-fit: cover; }
+        .cart-sidebar-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1999; display: none; backdrop-filter: blur(2px); }
+
+        @media (max-width: 768px) {
+            .detail-layout { grid-template-columns: 1fr; }
+            .gallery-container { position: static; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar" id="mainNavbar">
+        <div class="container flex-between">
+            <a href="/" class="nav-logo">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 9.5L12 3L21 9.5V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V9.5Z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 21V12H15V21" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Rent<strong>Ease</strong>
+            </a>
+            
+            <div class="nav-links hide-mobile">
+                <a href="/">Home</a>
+                <a href="/pages/products.html">Browse</a>
+                <a href="/#how-it-works">Experience</a>
+                <a href="/#pricing">Plans</a>
+            </div>
+
+            <div class="flex-start gap-4">
+                <button id="searchTrigger" class="btn-ghost" style="padding: 10px;" aria-label="Search">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                </button>
+                <a href="/pages/cart.html" class="cart-icon-wrapper btn-ghost" style="padding: 10px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+                    <span class="cart-count">0</span>
+                </a>
+                <div id="authLinks" class="btn-group"></div>
+                <button id="hamburger" class="btn-ghost hide-desktop" style="padding: 10px;">☰</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Global Search Overlay -->
+    <div id="searchOverlay" class="search-overlay" role="dialog" aria-label="Search" aria-modal="true">
+        <div class="search-container">
+            <input id="globalSearchInput" class="search-input-field" type="text" placeholder="Search for furniture, appliances…" autocomplete="off" aria-label="Search products">
+            <button id="searchClose" class="search-close-btn" aria-label="Close search">×</button>
+        </div>
+        <div id="searchDropdown" class="search-dropdown-panel" role="listbox" style="display:none"></div>
+    </div>
+
+    <!-- Cart Sidebar -->
+    <div class="cart-sidebar-backdrop" id="cartBackdrop" onclick="cartUtils.closeSidebar()"></div>
+    <div class="cart-sidebar" id="cartSidebar">
+        <div class="cart-sidebar-header">
+            <h2 style="font-family: var(--font-display); font-size: 1.25rem;">Your Cart <span id="cartSidebarCount">(0)</span></h2>
+            <button class="btn-ghost" onclick="cartUtils.closeSidebar()" style="font-size: 1.5rem;">✕</button>
+        </div>
+        <div class="cart-sidebar-content" id="cartSidebarItems">
+            <!-- Items via JS -->
+        </div>
+        <div class="cart-sidebar-footer">
+            <div class="flex-between mb-4">
+                <span class="text-muted">Total Monthly Rent</span>
+                <span class="font-bold text-primary" id="cartSidebarTotal">₹0</span>
+            </div>
+            <a href="/pages/cart.html" class="btn btn-primary" style="width: 100%; margin-bottom: var(--space-2);">View Full Cart</a>
+            <a href="/pages/checkout.html" class="btn btn-secondary" style="width: 100%;">Checkout Now</a>
+        </div>
+    </div>
+
+    <div class="container py-8">
+        <!-- Breadcrumb -->
+        <nav class="flex-start gap-2 text-muted mb-8" id="breadcrumb" style="font-size: 0.875rem;">
+            <a href="/">Home</a> <span>/</span> <a href="/pages/products.html">Products</a> <span>/</span> <span id="bcCategory" class="text-primary">Category</span> <span>/</span> <span id="bcProduct">Product</span>
+        </nav>
+
+        <div class="detail-layout">
+            <!-- Left: Gallery -->
+            <div class="gallery-container animate-fade-in">
+                <div class="main-image-wrapper">
+                    <img id="mainImage" src="" alt="">
+                </div>
+                <div class="thumbnails" id="thumbnailStrip"></div>
+                
+                <div class="flex-start gap-6 mt-8">
+                    <button class="btn btn-ghost btn-sm" onclick="share('whatsapp')">WhatsApp Share</button>
+                    <button class="btn btn-ghost btn-sm" onclick="copyLink()">Copy Link</button>
+                </div>
+            </div>
+
+            <!-- Right: Info -->
+            <div class="info-section animate-slide-up">
+                <div class="info-header">
+                    <div class="flex-start gap-4">
+                        <span id="pCategoryBadge" class="badge badge-success">Category</span>
+                        <span id="pConditionBadge" class="badge badge-info">Condition</span>
+                    </div>
+                    <h1 id="pName">Loading...</h1>
+                    <div class="flex-start gap-4 text-muted">
+                        <span id="pBrand">Brand</span> • 
+                        <div class="flex-start gap-1" style="color: var(--color-accent);">
+                            ★★★★★ <span class="text-muted" id="pRatingCount">(0)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="availability-indicator" id="pAvailability">
+                    <div class="dot dot-green"></div>
+                    <span>Checking availability...</span>
+                </div>
+
+                <div class="mb-8">
+                    <h4 class="mb-4">1. Choose Rental Duration</h4>
+                    <div class="plan-grid" id="pPlanGrid"></div>
+                </div>
+
+                <div class="price-summary">
+                    <div class="summary-row">
+                        <span>Monthly Rent</span>
+                        <span id="sumMonthly">₹0</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Tenure</span>
+                        <span id="sumTenure">0 Months</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Security Deposit (Refundable)</span>
+                        <span id="sumDeposit">₹0</span>
+                    </div>
+                    <div class="summary-row summary-total">
+                        <span>Total Due Today</span>
+                        <span id="sumTotal">₹0</span>
+                    </div>
+                </div>
+
+                <div class="flex-start gap-6 mb-12">
+                    <div class="flex-start border rounded p-2" style="border: 1px solid var(--color-border); border-radius: var(--radius-md);">
+                        <button class="btn-ghost px-4" onclick="updateQty(-1)">-</button>
+                        <span id="qtyDisplay" class="px-4 font-bold">1</span>
+                        <button class="btn-ghost px-4" onclick="updateQty(1)">+</button>
+                    </div>
+                    <button id="addToCartBtn" class="btn btn-primary btn-lg flex-grow" onclick="handleAddToCart()">Add to Cart</button>
+                </div>
+
+                <div class="tabs">
+                    <div class="tab-btn active" onclick="switchTab('desc')">Description</div>
+                    <div class="tab-btn" onclick="switchTab('spec')">Specifications</div>
+                    <div class="tab-btn" onclick="switchTab('terms')">Rental Terms</div>
+                </div>
+                <div class="tab-container mb-12">
+                    <div id="tab-desc" class="tab-content active">
+                        <p id="pFullDesc" class="text-secondary"></p>
+                    </div>
+                    <div id="tab-spec" class="tab-content">
+                        <table class="table" style="width: 100%;">
+                            <tbody id="pSpecTable"></tbody>
+                        </table>
+                    </div>
+                    <div id="tab-terms" class="tab-content">
+                        <ul class="text-secondary" style="padding-left: 20px;">
+                            <li>Free relocation within the city.</li>
+                            <li>Full maintenance included for normal wear & tear.</li>
+                            <li>Refundable security deposit returned within 7 days of pickup.</li>
+                            <li>Minimum tenure commitment applies based on selected plan.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="flex-start gap-8 border-top pt-8" style="border-top: 1px solid var(--color-border);">
+                    <div class="text-center"><div style="font-size: 1.5rem;">🚚</div><div style="font-size: 0.7rem; font-weight: 600;">Free Delivery</div></div>
+                    <div class="text-center"><div style="font-size: 1.5rem;">🛠️</div><div style="font-size: 0.7rem; font-weight: 600;">Free Service</div></div>
+                    <div class="text-center"><div style="font-size: 1.5rem;">🔄</div><div style="font-size: 0.7rem; font-weight: 600;">Easy Returns</div></div>
+                    <div class="text-center"><div style="font-size: 1.5rem;">🔒</div><div style="font-size: 0.7rem; font-weight: 600;">Secure Pay</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Related Products -->
+        <section class="related-section animate-fade-in">
+            <h2 class="mb-10">You might also like</h2>
+            <div class="grid-4" id="relatedGrid"></div>
+        </section>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/toast.js"></script>
+    <script src="../js/loader.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/cart.js"></script>
+
+    <script>
+        let currentProduct = null;
+        let selectedPlanIdx = 0;
+        let currentQty = 1;
+
+        async function init() {
+            const slug = new URLSearchParams(window.location.search).get('slug');
+            if (!slug) {
+                window.location.href = '/pages/products.html';
+                return;
+            }
+
+            try {
+                const res = await API.get(`/products/${slug}`);
+                currentProduct = res.data.product;
+                renderProduct();
+                fetchRelated();
+                startAvailabilityPolling();
+            } catch (err) {
+                Toast.error('Product not found');
+                setTimeout(() => window.location.href = '/pages/products.html', 2000);
+            }
+        }
+
+        function renderProduct() {
+            const p = currentProduct;
+            
+            // Breadcrumbs
+            document.getElementById('bcCategory').innerText = p.category.name;
+            document.getElementById('bcCategory').href = `/pages/products.html?category=${p.category.slug}`;
+            document.getElementById('bcProduct').innerText = p.name;
+
+            // Info
+            document.getElementById('pName').innerText = p.name;
+            document.getElementById('pBrand').innerText = p.brand;
+            document.getElementById('pRatingCount').innerText = `(${p.ratings.count})`;
+            document.getElementById('pCategoryBadge').innerText = p.category.name;
+            document.getElementById('pConditionBadge').innerText = p.condition.replace('-', ' ');
+            document.getElementById('pFullDesc').innerText = p.description;
+
+            // Gallery
+            renderGallery(p.images);
+
+            // Plans
+            selectedPlanIdx = p.rentalPlans.findIndex(plan => plan.isPopular) || 0;
+            if (selectedPlanIdx === -1) selectedPlanIdx = 0;
+            renderPlans(p.rentalPlans);
+
+            // Specs
+            const specTable = document.getElementById('pSpecTable');
+            specTable.innerHTML = Object.entries(p.specifications).map(([key, value]) => `
+                <tr>
+                    <td class="py-2 text-muted" style="width: 40%; text-transform: capitalize;">${key}</td>
+                    <td class="py-2 font-bold">${value}</td>
+                </tr>
+            `).join('');
+
+            updatePriceSummary();
+            updateAvailabilityUI();
+        }
+
+        function renderGallery(images) {
+            const mainImg = document.getElementById('mainImage');
+            const thumbStrip = document.getElementById('thumbnailStrip');
+            
+            mainImg.src = images[0];
+            thumbStrip.innerHTML = images.map((img, idx) => `
+                <div class="thumb ${idx === 0 ? 'active' : ''}" onclick="switchImage('${img}', this)">
+                    <img src="${img}" alt="">
+                </div>
+            `).join('');
+        }
+
+        function switchImage(src, el) {
+            document.getElementById('mainImage').src = src;
+            document.querySelectorAll('.thumb').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        function renderPlans(plans) {
+            const grid = document.getElementById('pPlanGrid');
+            grid.innerHTML = plans.map((plan, idx) => `
+                <div class="plan-card ${idx === selectedPlanIdx ? 'active' : ''}" onclick="selectPlan(${idx})">
+                    ${plan.discount > 0 ? `<div class="discount">${plan.discount}% OFF</div>` : ''}
+                    ${plan.isPopular ? `<div class="popular">POPULAR</div>` : ''}
+                    <div style="font-weight: 700;">${plan.label}</div>
+                    <div class="text-primary font-bold">₹${plan.monthlyPrice.toLocaleString()}/mo</div>
+                </div>
+            `).join('');
+        }
+
+        function selectPlan(idx) {
+            selectedPlanIdx = idx;
+            document.querySelectorAll('.plan-card').forEach((c, i) => {
+                c.classList.toggle('active', i === idx);
+            });
+            updatePriceSummary();
+        }
+
+        function updatePriceSummary() {
+            const plan = currentProduct.rentalPlans[selectedPlanIdx];
+            document.getElementById('sumMonthly').innerText = `₹${plan.monthlyPrice.toLocaleString()}`;
+            document.getElementById('sumTenure').innerText = `${plan.duration} Months`;
+            document.getElementById('sumDeposit').innerText = `₹${currentProduct.securityDeposit.toLocaleString()}`;
+            document.getElementById('sumTotal').innerText = `₹${(plan.monthlyPrice * currentQty + currentProduct.securityDeposit).toLocaleString()}`;
+        }
+
+        function updateQty(delta) {
+            const newQty = currentQty + delta;
+            if (newQty >= 1 && newQty <= currentProduct.availableUnits) {
+                currentQty = newQty;
+                document.getElementById('qtyDisplay').innerText = currentQty;
+                updatePriceSummary();
+            }
+        }
+
+        function updateAvailabilityUI() {
+            const container = document.getElementById('pAvailability');
+            const units = currentProduct.availableUnits;
+            const dot = container.querySelector('.dot');
+            const text = container.querySelector('span');
+
+            if (units > 5) {
+                dot.className = 'dot dot-green';
+                text.innerText = `In Stock — ${units} units available`;
+            } else if (units > 0) {
+                dot.className = 'dot dot-amber';
+                text.innerText = `Only ${units} left — order soon!`;
+            } else {
+                dot.className = 'dot dot-red';
+                text.innerText = 'Currently Unavailable';
+                document.getElementById('addToCartBtn').disabled = true;
+            }
+        }
+
+        function switchTab(name) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.innerText.toLowerCase().includes(name)));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.toggle('active', content.id === `tab-${name}`));
+        }
+
+        function handleAddToCart() {
+            if (!currentProduct) return;
+            cartUtils.addToCart(currentProduct, currentProduct.rentalPlans[selectedPlanIdx], currentQty);
+        }
+
+        async function fetchRelated() {
+            try {
+                const res = await API.get(`/products?category=${currentProduct.category.slug}&limit=5`);
+                const products = res.data.products.filter(p => p.slug !== currentProduct.slug).slice(0, 4);
+                
+                const grid = document.getElementById('relatedGrid');
+                grid.innerHTML = products.map(p => `
+                    <div class="card card-hover">
+                        <img src="${p.images[0]}" style="height: 180px; width: 100%; object-fit: cover; border-radius: var(--radius-md);">
+                        <div class="p-4">
+                            <h4 style="font-size: 0.9rem; height: 2.2rem; overflow: hidden;">${p.name}</h4>
+                            <div class="flex-between mt-4">
+                                <span class="font-bold">₹${p.rentalPlans[0].monthlyPrice}/mo</span>
+                                <a href="?slug=${p.slug}" class="btn btn-ghost btn-sm">View</a>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {}
+        }
+
+        function startAvailabilityPolling() {
+            const interval = setInterval(async () => {
+                try {
+                    const res = await API.get(`/products/${currentProduct.slug}`);
+                    currentProduct.availableUnits = res.data.product.availableUnits;
+                    updateAvailabilityUI();
+                } catch (e) {}
+            }, 60000);
+            window.addEventListener('beforeunload', () => clearInterval(interval));
+        }
+
+        function share(type) {
+            const url = encodeURIComponent(window.location.href);
+            const text = encodeURIComponent(`Check out this ${currentProduct.name} on RentEase!`);
+            if (type === 'whatsapp') window.open(`https://wa.me/?text=${text}%20${url}`);
+        }
+
+        function copyLink() {
+            navigator.clipboard.writeText(window.location.href);
+            Toast.success('Link copied to clipboard!');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            init();
+            cartUtils.syncCartBadge();
+            Auth.init();
+        });
+    </script>
+</body>
+</html>

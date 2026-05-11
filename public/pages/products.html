@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browse Products | RentEase</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/reset.css">
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/animations.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+
+    <style>
+        .products-layout { display: flex; gap: var(--space-8); margin-top: var(--space-8); }
+        .sidebar { width: 280px; flex-shrink: 0; position: sticky; top: 100px; height: calc(100vh - 120px); overflow-y: auto; padding-right: var(--space-4); }
+        .main-content { flex-grow: 1; }
+
+        /* Filter Sections */
+        .filter-section { border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-6); margin-bottom: var(--space-6); }
+        .filter-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin-bottom: var(--space-4); }
+        .filter-header h3 { font-size: 1rem; color: var(--color-primary); }
+        .filter-content { max-height: 500px; overflow: hidden; transition: max-height 0.3s ease; }
+        .filter-content.collapsed { max-height: 0; }
+
+        /* Range Inputs */
+        .price-inputs { display: flex; flex-direction: column; gap: var(--space-4); }
+        .price-display { font-weight: 700; color: var(--color-primary); margin-bottom: var(--space-2); }
+
+        /* Chips */
+        .chip-group { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+        .chip-input { display: none; }
+        .chip-label { padding: 6px 16px; background: var(--color-surface-2); border-radius: var(--radius-full); font-size: 0.875rem; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
+        .chip-input:checked + .chip-label { background: var(--color-primary); color: white; border-color: var(--color-primary); }
+
+        /* Top Bar */
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-8); flex-wrap: wrap; gap: var(--space-4); }
+        .search-box { position: relative; width: 300px; }
+        .search-box input { padding-right: 40px; }
+        .search-clear { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; display: none; }
+
+        /* Product Cards */
+        .product-card { position: relative; }
+        .condition-badge { position: absolute; top: 12px; left: 12px; z-index: 2; padding: 4px 8px; border-radius: var(--radius-sm); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+        .badge-new { background: var(--color-success); color: white; }
+        .badge-like-new { background: var(--color-info); color: white; }
+        .badge-good { background: var(--color-text-muted); color: white; }
+
+        .wishlist-btn { position: absolute; top: 12px; right: 12px; z-index: 2; background: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm); transition: all 0.2s; }
+        .wishlist-btn.active { color: var(--color-danger); }
+
+        .quick-view-overlay { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 240px; 
+            background: rgba(15, 23, 42, 0.4); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            opacity: 0; 
+            transition: all var(--transition-base); 
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0; 
+            backdrop-filter: blur(2px);
+        }
+        .product-card:hover .quick-view-overlay { opacity: 1; }
+        .product-card { 
+            display: flex; 
+            flex-direction: column; 
+            height: 100%; 
+            transition: transform var(--transition-base), box-shadow var(--transition-base);
+        }
+        .product-card:hover { transform: translateY(-4px); }
+        .product-info-content { flex-grow: 1; display: flex; flex-direction: column; padding: var(--space-5); }
+        .product-card-footer { margin-top: auto; padding-top: var(--space-4); border-top: 1px solid var(--color-surface-2); display: flex; align-items: center; justify-content: space-between; }
+
+        /* Modal */
+        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .modal { background: white; width: 90%; max-width: 900px; border-radius: var(--radius-xl); display: flex; overflow: hidden; animation: slideUp 0.3s ease; }
+        .modal-image { width: 45%; background: var(--color-surface-2); display: flex; align-items: center; justify-content: center; }
+        .modal-image img { width: 100%; height: 100%; object-fit: cover; }
+        .modal-info { width: 55%; padding: var(--space-10); position: relative; }
+        .modal-close { position: absolute; top: 20px; right: 20px; font-size: 1.5rem; cursor: pointer; }
+
+        /* Cart Sidebar */
+        .cart-sidebar { position: fixed; top: 0; right: 0; width: 400px; height: 100%; background: white; z-index: 2000; transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: -10px 0 40px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
+        .cart-sidebar.open { transform: translateX(0); }
+        .cart-sidebar-header { padding: var(--space-6); border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; }
+        .cart-sidebar-content { flex-grow: 1; overflow-y: auto; padding: var(--space-6); }
+        .cart-sidebar-footer { padding: var(--space-6); border-top: 1px solid var(--color-border); background: var(--color-surface-2); }
+        .cart-item-mini { display: flex; gap: var(--space-4); margin-bottom: var(--space-6); padding-bottom: var(--space-4); border-bottom: 1px solid var(--color-surface-2); }
+        .cart-item-mini img { width: 64px; height: 64px; border-radius: var(--radius-md); object-fit: cover; }
+        .cart-sidebar-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1999; display: none; backdrop-filter: blur(2px); }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .sidebar.sheet-open { display: block; position: fixed; top: auto; bottom: 0; left: 0; width: 100%; height: 80vh; background: white; z-index: 1100; padding: var(--space-8); border-radius: var(--radius-xl) var(--radius-xl) 0 0; box-shadow: 0 -10px 25px rgba(0,0,0,0.1); }
+            .products-layout { flex-direction: column; }
+            .search-box { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <!-- Navbar -->
+    <nav class="navbar" id="mainNavbar">
+        <div class="container flex-between">
+            <a href="/" class="nav-logo">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 9.5L12 3L21 9.5V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V9.5Z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 21V12H15V21" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Rent<strong>Ease</strong>
+            </a>
+            
+            <div class="nav-links hide-mobile">
+                <a href="/">Home</a>
+                <a href="/pages/products.html" class="active">Browse</a>
+                <a href="/#how-it-works">Experience</a>
+                <a href="/#pricing">Plans</a>
+            </div>
+
+            <div class="flex-start gap-4">
+                <button id="searchTrigger" class="btn-ghost" style="padding: 10px;" aria-label="Search">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                </button>
+                <a href="/pages/cart.html" class="cart-icon-wrapper btn-ghost" style="padding: 10px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+                    <span class="cart-count">0</span>
+                </a>
+                <div id="authLinks" class="btn-group"></div>
+                <button id="hamburger" class="btn-ghost hide-desktop" style="padding: 10px;">☰</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Global Search Overlay -->
+    <div id="searchOverlay" class="search-overlay" role="dialog" aria-label="Search" aria-modal="true">
+        <div class="search-container">
+            <input id="globalSearchInput" class="search-input-field" type="text" placeholder="Search for furniture, appliances…" autocomplete="off" aria-label="Search products">
+            <button id="searchClose" class="search-close-btn" aria-label="Close search">×</button>
+        </div>
+        <div id="searchDropdown" class="search-dropdown-panel" role="listbox" style="display:none"></div>
+    </div>
+
+    <!-- Cart Sidebar -->
+    <div class="cart-sidebar-backdrop" id="cartBackdrop" onclick="cartUtils.closeSidebar()"></div>
+    <div class="cart-sidebar" id="cartSidebar">
+        <div class="cart-sidebar-header">
+            <h2 style="font-family: var(--font-display); font-size: 1.25rem;">Your Cart <span id="cartSidebarCount">(0)</span></h2>
+            <button class="btn-ghost" onclick="cartUtils.closeSidebar()" style="font-size: 1.5rem;">✕</button>
+        </div>
+        <div class="cart-sidebar-content" id="cartSidebarItems">
+            <!-- Items via JS -->
+        </div>
+        <div class="cart-sidebar-footer">
+            <div class="flex-between mb-4">
+                <span class="text-muted">Total Monthly Rent</span>
+                <span class="font-bold text-primary" id="cartSidebarTotal">₹0</span>
+            </div>
+            <a href="/pages/cart.html" class="btn btn-primary" style="width: 100%; margin-bottom: var(--space-2);">View Full Cart</a>
+            <a href="/pages/checkout.html" class="btn btn-secondary" style="width: 100%;">Checkout Now</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="products-layout">
+            <!-- Sidebar -->
+            <aside class="sidebar" id="filterSidebar">
+                <div class="flex-between mb-8">
+                    <h2>Filters</h2>
+                    <button class="btn btn-ghost btn-sm" onclick="clearFilters()">Clear All</button>
+                </div>
+
+                <!-- Categories -->
+                <div class="filter-section">
+                    <div class="filter-header" onclick="toggleFilter(this)">
+                        <h3>Category</h3>
+                        <span>▼</span>
+                    </div>
+                    <div class="filter-content" id="categoryFilter">
+                        <div class="chip-group" id="categoryList">
+                            <!-- Loaded via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Price Range -->
+                <div class="filter-section">
+                    <div class="filter-header" onclick="toggleFilter(this)">
+                        <h3>Monthly Rent</h3>
+                        <span>▼</span>
+                    </div>
+                    <div class="filter-content">
+                        <div class="price-display" id="priceDisplay">₹0 – ₹10,000</div>
+                        <div class="price-inputs">
+                            <input type="range" id="minPriceInput" min="0" max="10000" step="500" value="0" oninput="handlePriceChange()">
+                            <input type="range" id="maxPriceInput" min="0" max="10000" step="500" value="10000" oninput="handlePriceChange()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Condition -->
+                <div class="filter-section">
+                    <div class="filter-header" onclick="toggleFilter(this)">
+                        <h3>Condition</h3>
+                        <span>▼</span>
+                    </div>
+                    <div class="filter-content">
+                        <label class="flex-start gap-2 mb-2"><input type="checkbox" value="new" onchange="handleConditionChange(this)"> New</label>
+                        <label class="flex-start gap-2 mb-2"><input type="checkbox" value="like-new" onchange="handleConditionChange(this)"> Like New</label>
+                        <label class="flex-start gap-2 mb-2"><input type="checkbox" value="good" onchange="handleConditionChange(this)"> Good</label>
+                    </div>
+                </div>
+
+                <!-- Availability -->
+                <div class="filter-section flex-between">
+                    <h3 style="font-size: 1rem;">Available Only</h3>
+                    <input type="checkbox" id="availableToggle" onchange="handleAvailabilityChange(this)">
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <div class="top-bar">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Search furniture, brands..." oninput="handleSearch(this)">
+                        <span class="search-clear" id="searchClear" onclick="clearSearch()">✕</span>
+                    </div>
+                    
+                    <div class="flex-start gap-4">
+                        <span id="resultsCount" class="text-muted">Showing 0 products</span>
+                        <select id="sortSelect" onchange="handleSortChange(this)">
+                            <option value="newest">Newest First</option>
+                            <option value="price-low">Price: Low to High</option>
+                            <option value="price-high">Price: High to Low</option>
+                            <option value="popular">Most Popular</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid-3" id="productsGrid">
+                    <!-- Cards or Skeletons -->
+                </div>
+
+                <div class="flex-center mt-12" id="paginationBox">
+                    <button id="loadMoreBtn" class="btn btn-outline" style="display:none;" onclick="handleLoadMore()">Load More</button>
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="flex-center flex-direction-column py-20" style="display:none;">
+                    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" stroke-width="1.5">
+                        <path d="M21 8H3L4 21H20L21 8Z" /><path d="M10 12L14 16M14 12L10 16" /><path d="M8 8V6C8 4.89543 8.89543 4 10 4H14C15.1046 4 16 4.89543 16 6V8" />
+                    </svg>
+                    <h3 class="mt-4">No products found</h3>
+                    <p class="text-muted">Try adjusting your filters or search terms.</p>
+                    <button class="btn btn-primary mt-6" onclick="clearFilters()">Clear All Filters</button>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Quick View Modal -->
+    <div class="modal-backdrop" id="quickViewBackdrop" onclick="closeQuickView(event)">
+        <div class="modal" id="quickViewModal">
+            <span class="modal-close" onclick="closeQuickView(true)">✕</span>
+            <div class="modal-image">
+                <img id="qvImage" src="" alt="">
+            </div>
+            <div class="modal-info">
+                <div id="qvCategory" class="badge badge-success mb-2">Category</div>
+                <h2 id="qvName" class="mb-4">Product Name</h2>
+                <p id="qvDesc" class="text-secondary mb-6" style="height: 4.5rem; overflow: hidden;">Description...</p>
+                
+                <div class="mb-6">
+                    <label class="block mb-2 font-bold">Select Rental Plan</label>
+                    <div class="chip-group" id="qvPlans"></div>
+                </div>
+
+                <div class="flex-between py-4 border-top" style="border-top: 1px solid var(--color-border);">
+                    <div>
+                        <div id="qvPrice" style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary);">₹0</div>
+                        <span class="text-muted">Security Deposit: ₹<span id="qvDeposit">0</span></span>
+                    </div>
+                    <div class="flex-start gap-4">
+                        <button class="btn btn-primary" id="qvAddToCart">Add to Cart</button>
+                        <a id="qvFullDetails" href="#" class="btn btn-ghost">Details →</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/toast.js"></script>
+    <script src="../js/loader.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/cart.js"></script>
+
+    <script>
+        const filterState = {
+            category: '',
+            search: '',
+            minPrice: 0,
+            maxPrice: 10000,
+            condition: [],
+            available: false,
+            sort: 'newest',
+            page: 1
+        };
+
+        let currentProducts = [];
+
+        // UI Helpers
+        function toggleFilter(header) {
+            header.nextElementSibling.classList.toggle('collapsed');
+            header.querySelector('span').innerText = header.nextElementSibling.classList.contains('collapsed') ? '▶' : '▼';
+        }
+
+        function handlePriceChange() {
+            const min = document.getElementById('minPriceInput');
+            const max = document.getElementById('maxPriceInput');
+            
+            if (parseInt(min.value) > parseInt(max.value)) {
+                min.value = max.value;
+            }
+            
+            filterState.minPrice = min.value;
+            filterState.maxPrice = max.value;
+            document.getElementById('priceDisplay').innerText = `₹${min.value} – ₹${max.value}`;
+            
+            debounceFetch();
+        }
+
+        function handleSearch(input) {
+            filterState.search = input.value.trim();
+            document.getElementById('searchClear').style.display = input.value ? 'block' : 'none';
+            debounceFetch(400);
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            filterState.search = '';
+            document.getElementById('searchClear').style.display = 'none';
+            fetchProducts();
+        }
+
+        function handleConditionChange(cb) {
+            if (cb.checked) filterState.condition.push(cb.value);
+            else filterState.condition = filterState.condition.filter(v => v !== cb.value);
+            fetchProducts();
+        }
+
+        function handleAvailabilityChange(cb) {
+            filterState.available = cb.checked;
+            fetchProducts();
+        }
+
+        function handleSortChange(select) {
+            filterState.sort = select.value;
+            fetchProducts();
+        }
+
+        function clearFilters() {
+            filterState.category = '';
+            filterState.search = '';
+            filterState.minPrice = 0;
+            filterState.maxPrice = 10000;
+            filterState.condition = [];
+            filterState.available = false;
+            filterState.sort = 'newest';
+            filterState.page = 1;
+
+            document.getElementById('searchInput').value = '';
+            document.getElementById('minPriceInput').value = 0;
+            document.getElementById('maxPriceInput').value = 10000;
+            document.getElementById('priceDisplay').innerText = '₹0 – ₹10,000';
+            document.querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = false);
+            document.getElementById('sortSelect').value = 'newest';
+            
+            // Uncheck category chips
+            document.querySelectorAll('.chip-input').forEach(c => c.checked = false);
+            
+            fetchProducts();
+        }
+
+        // Logic
+        let debounceTimer;
+        function debounceFetch(ms = 300) {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                filterState.page = 1;
+                fetchProducts();
+            }, ms);
+        }
+
+        function buildQueryString() {
+            const params = new URLSearchParams();
+            if (filterState.category) params.append('category', filterState.category);
+            if (filterState.search) params.append('search', filterState.search);
+            if (filterState.minPrice > 0) params.append('minPrice', filterState.minPrice);
+            if (filterState.maxPrice < 10000) params.append('maxPrice', filterState.maxPrice);
+            if (filterState.condition.length > 0) params.append('condition', filterState.condition.join(','));
+            if (filterState.available) params.append('available', 'true');
+            if (filterState.sort !== 'newest') params.append('sort', filterState.sort);
+            if (filterState.page > 1) params.append('page', filterState.page);
+            return params.toString();
+        }
+
+        async function fetchProducts(append = false) {
+            const grid = document.getElementById('productsGrid');
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+            const emptyState = document.getElementById('emptyState');
+
+            if (!append) {
+                grid.innerHTML = utils.skeletonProductCard().repeat(6);
+                filterState.page = 1;
+                window.scrollTo(0, 0);
+            }
+
+            try {
+                const qs = buildQueryString();
+                const res = await API.get(`/products?${qs}`);
+                const { products, totalCount, hasNextPage } = res.data;
+
+                if (!append) grid.innerHTML = '';
+                
+                if (products.length === 0 && !append) {
+                    emptyState.style.display = 'flex';
+                    loadMoreBtn.style.display = 'none';
+                    document.getElementById('resultsCount').innerText = '0 products';
+                    return;
+                }
+
+                emptyState.style.display = 'none';
+                products.forEach(p => {
+                    grid.insertAdjacentHTML('beforeend', renderProductCard(p));
+                });
+
+                currentProducts = append ? [...currentProducts, ...products] : products;
+                document.getElementById('resultsCount').innerText = `Showing ${currentProducts.length} of ${totalCount} products`;
+                
+                loadMoreBtn.style.display = hasNextPage ? 'block' : 'none';
+                
+                // Sync URL
+                history.pushState(null, '', `?${qs}`);
+                
+            } catch (err) {
+                utils.renderError(grid, 'Failed to load products', fetchProducts);
+            }
+        }
+
+        function renderProductCard(p) {
+            const conditionClass = `badge-${p.condition}`;
+            const isWishlisted = localStorage.getItem(`wishlist_${p._id}`) === 'true';
+            
+            return `
+                <div class="card card-hover product-card animate-fade-in">
+                    <span class="condition-badge ${conditionClass}">${p.condition.replace('-', ' ')}</span>
+                    <button class="wishlist-btn ${isWishlisted ? 'active' : ''}" onclick="toggleWishlist('${p._id}', this)">❤</button>
+                    
+                    <div class="quick-view-overlay">
+                        <button class="btn btn-secondary btn-sm" onclick="openQuickView('${p.slug}')">Quick View</button>
+                    </div>
+
+                    <img src="${p.images[0]}" alt="${p.name}" class="product-image" loading="lazy" style="height: 240px; object-fit: cover;">
+                    <div class="product-info-content">
+                        <div class="flex-between">
+                            <span class="text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">${p.category.name}</span>
+                            <div class="flex-start gap-1" style="color: var(--color-accent); font-size: 0.75rem;">
+                                ★ ${p.ratings.average} <span class="text-muted">(${p.ratings.count})</span>
+                            </div>
+                        </div>
+                        <h3 style="font-size: 1.125rem; margin-top: var(--space-2); font-family: var(--font-display); line-height: 1.4; flex-grow: 1;">
+                            <a href="/pages/product-detail.html?slug=${p.slug}" style="color: inherit; text-decoration: none;">${p.name}</a>
+                        </h3>
+                        
+                        <div class="product-card-footer">
+                            <div>
+                                <span class="text-muted" style="font-size: 0.75rem; display: block;">Starting at</span>
+                                <span class="price-tag" style="font-size: 1.25rem;">₹${p.rentalPlans[0].monthlyPrice}</span>
+                                <span class="text-muted" style="font-size: 0.75rem;">/mo</span>
+                            </div>
+                            <button class="btn btn-primary btn-sm" style="padding: 10px 16px;" onclick="cartUtils.addToCart(${JSON.stringify(p).replace(/"/g, '&quot;')}, ${JSON.stringify(p.rentalPlans[0]).replace(/"/g, '&quot;')})">Add +</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function handleLoadMore() {
+            filterState.page++;
+            fetchProducts(true);
+        }
+
+        function toggleWishlist(id, btn) {
+            const key = `wishlist_${id}`;
+            const active = localStorage.getItem(key) === 'true';
+            localStorage.setItem(key, !active);
+            btn.classList.toggle('active');
+            Toast.success(active ? 'Removed from wishlist' : 'Added to wishlist');
+        }
+
+        // Quick View
+        async function openQuickView(slug) {
+            const backdrop = document.getElementById('quickViewBackdrop');
+            const modal = document.getElementById('quickViewModal');
+            backdrop.style.display = 'flex';
+            
+            try {
+                const res = await API.get(`/products/${slug}`);
+                const p = res.data.product;
+                
+                document.getElementById('qvImage').src = p.images[0];
+                document.getElementById('qvName').innerText = p.name;
+                document.getElementById('qvCategory').innerText = p.category.name;
+                document.getElementById('qvDesc').innerText = p.shortDescription;
+                document.getElementById('qvDeposit').innerText = p.securityDeposit.toLocaleString();
+                document.getElementById('qvFullDetails').href = `/pages/product-detail.html?slug=${p.slug}`;
+                
+                const plansContainer = document.getElementById('qvPlans');
+                plansContainer.innerHTML = p.rentalPlans.map((plan, idx) => `
+                    <input type="radio" name="qvPlan" id="plan_${idx}" class="chip-input" ${idx === 0 ? 'checked' : ''} onchange="updateQVPrice(${plan.monthlyPrice})">
+                    <label for="plan_${idx}" class="chip-label">${plan.label}</label>
+                `).join('');
+                
+                updateQVPrice(p.rentalPlans[0].monthlyPrice);
+                
+                document.getElementById('qvAddToCart').onclick = () => {
+                    const selectedIdx = Array.from(document.querySelectorAll('input[name="qvPlan"]')).findIndex(r => r.checked);
+                    cartUtils.addToCart(p, p.rentalPlans[selectedIdx]);
+                    closeQuickView(true);
+                };
+                
+            } catch (err) {
+                Toast.error('Failed to load product details');
+                closeQuickView(true);
+            }
+        }
+
+        function updateQVPrice(price) {
+            document.getElementById('qvPrice').innerText = `₹${price.toLocaleString()}/mo`;
+        }
+
+        function closeQuickView(e) {
+            if (e === true || e.target.id === 'quickViewBackdrop') {
+                document.getElementById('quickViewBackdrop').style.display = 'none';
+            }
+        }
+
+        // Initial Load
+        async function initCategories() {
+            try {
+                const res = await API.get('/products/categories/all');
+                const list = document.getElementById('categoryList');
+                list.innerHTML = res.data.categories.map(c => `
+                    <input type="radio" name="cat" id="cat_${c.slug}" value="${c.slug}" class="chip-input" onchange="filterState.category=this.value; fetchProducts()">
+                    <label for="cat_${c.slug}" class="chip-label">${c.name}</label>
+                `).join('');
+                
+                // Restore from URL
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.has('category')) {
+                    const radio = document.getElementById(`cat_${urlParams.get('category')}`);
+                    if (radio) radio.checked = true;
+                }
+            } catch (err) {}
+        }
+
+        window.addEventListener('popstate', () => {
+            // Restore state from URL and fetch
+            const params = new URLSearchParams(window.location.search);
+            filterState.category = params.get('category') || '';
+            filterState.search = params.get('search') || '';
+            filterState.minPrice = params.get('minPrice') || 0;
+            filterState.maxPrice = params.get('maxPrice') || 10000;
+            filterState.sort = params.get('sort') || 'newest';
+            fetchProducts();
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initCategories();
+            
+            const params = new URLSearchParams(window.location.search);
+            filterState.category = params.get('category') || '';
+            filterState.search = params.get('search') || '';
+            
+            if (filterState.search) {
+                document.getElementById('searchInput').value = filterState.search;
+                document.getElementById('searchClear').style.display = 'block';
+            }
+
+            fetchProducts();
+            cartUtils.syncCartBadge();
+            Auth.init();
+        });
+
+        // Close on escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeQuickView(true);
+        });
+    </script>
+</body>
+</html>

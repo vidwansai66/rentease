@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Management | RentEase Admin</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="../../css/variables.css">
+    <link rel="stylesheet" href="../../css/reset.css">
+    <link rel="stylesheet" href="../../css/global.css">
+    <link rel="stylesheet" href="../../css/components.css">
+    <link rel="stylesheet" href="../../css/animations.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <script src="../../js/admin-guard.js"></script>
+
+    <style>
+        body { background: var(--color-bg); display: flex; min-height: 100vh; overflow-x: hidden; }
+        
+        /* Dashboard Sidebar - Premium SaaS Style (Admin Theme) */
+        .admin-sidebar { 
+            width: var(--sidebar-width); 
+            background: #0F172A; 
+            display: flex; 
+            flex-direction: column; 
+            position: fixed; 
+            height: 100vh; 
+            z-index: var(--z-sticky); 
+            color: white;
+            padding: var(--space-8) 0;
+            transition: all var(--transition-base);
+        }
+
+        .admin-logo { 
+            padding: 0 var(--space-8) var(--space-8); 
+            border-bottom: 1px solid rgba(255,255,255,0.1); 
+            margin-bottom: var(--space-8); 
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: var(--font-display);
+        }
+
+        .admin-badge { 
+            background: var(--color-accent); 
+            color: #0F172A; 
+            font-size: 0.65rem; 
+            padding: 2px 8px; 
+            border-radius: var(--radius-sm); 
+            font-weight: 800; 
+            letter-spacing: 0.05em;
+        }
+
+        .nav-list { list-style: none; flex-grow: 1; padding: 0 var(--space-4); }
+        
+        .nav-item { 
+            display: flex; 
+            align-items: center; 
+            gap: var(--space-4); 
+            padding: var(--space-4) var(--space-6); 
+            color: rgba(255,255,255,0.6); 
+            border-radius: var(--radius-md);
+            transition: all var(--transition-fast);
+            margin-bottom: var(--space-1);
+            font-weight: 500;
+            text-decoration: none;
+        }
+
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-item.active { background: rgba(255,255,255,0.1); color: var(--color-accent); font-weight: 700; border-left: 4px solid var(--color-accent); }
+
+        .admin-main { 
+            margin-left: var(--sidebar-width); 
+            flex-grow: 1; 
+            padding: var(--space-12); 
+            width: calc(100% - var(--sidebar-width)); 
+        }
+
+        /* Table Styles */
+        .products-table-card { background: white; border-radius: var(--radius-xl); border: 1px solid var(--color-border); overflow: hidden; }
+        .admin-table { width: 100%; border-collapse: collapse; }
+        .admin-table th { background: var(--color-surface-2); text-align: left; padding: 16px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--color-text-muted); }
+        .admin-table td { padding: 16px; border-bottom: 1px solid var(--color-surface-2); font-size: 0.875rem; vertical-align: middle; }
+        .product-img-sm { width: 40px; height: 40px; border-radius: 4px; object-fit: cover; }
+
+        /* Slide-in Panel */
+        .side-panel-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: none; backdrop-filter: blur(4px); }
+        .side-panel { position: fixed; top: 0; right: 0; width: 600px; height: 100%; background: white; z-index: 1001; transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; box-shadow: -10px 0 30px rgba(0,0,0,0.1); }
+        .side-panel.open { transform: translateX(0); }
+        .panel-header { padding: var(--space-8); border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; }
+        .panel-content { flex-grow: 1; overflow-y: auto; padding: var(--space-8); }
+        .panel-footer { padding: var(--space-6) var(--space-8); border-top: 1px solid var(--color-border); display: flex; gap: var(--space-4); justify-content: flex-end; }
+
+        /* Media Slots */
+        .media-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .media-slot { aspect-ratio: 1/1; border: 2px dashed var(--color-border); border-radius: 8px; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; overflow: hidden; }
+        .media-slot:hover { border-color: var(--color-accent); }
+        .media-slot img { width: 100%; height: 100%; object-fit: cover; }
+        .media-slot.main::after { content: 'MAIN'; position: absolute; top: 5px; left: 5px; background: var(--color-accent); color: var(--color-primary); font-size: 0.6rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; }
+        .remove-img { position: absolute; top: 5px; right: 5px; background: var(--color-danger); color: white; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+
+        /* Chips */
+        .tag-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+        .chip { background: var(--color-surface-2); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; display: flex; align-items: center; gap: 6px; }
+        .chip span { cursor: pointer; opacity: 0.5; }
+
+        /* Modal */
+        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; display: none; align-items: center; justify-content: center; }
+        .modal { background: white; padding: 32px; border-radius: 16px; width: 400px; }
+
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.875rem; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid var(--color-border); border-radius: 8px; }
+
+        .rental-plan-row { display: grid; grid-template-columns: 60px 1fr 100px 80px 40px; gap: 8px; align-items: center; margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+
+    <aside class="admin-sidebar" id="sidebar"></aside>
+
+    <main class="admin-main">
+        <div class="flex-between mb-8">
+            <div>
+                <h1 style="font-family: var(--font-display);">Product Management</h1>
+                <p class="text-muted" id="productCount">Loading products...</p>
+            </div>
+            <button class="btn btn-primary" onclick="openPanel('add')">+ Add New Product</button>
+        </div>
+
+        <!-- Filters -->
+        <div class="card p-6 mb-8 flex-between gap-6">
+            <div class="flex-start gap-4 flex-grow">
+                <input type="text" id="searchInput" placeholder="Search by name or brand..." style="max-width: 300px;" oninput="debounce(fetchProducts, 500)()">
+                <select id="categoryFilter" onchange="fetchProducts()">
+                    <option value="">All Categories</option>
+                </select>
+                <div class="filter-section">
+                    <select id="statusFilter" class="form-select" onchange="fetchProducts()">
+                        <option value="all">All Status</option>
+                        <option value="approved">Approved</option>
+                        <option value="pending">Pending Approval</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex-start gap-2">
+                <button class="btn btn-ghost btn-sm" onclick="fetchProducts()">🔄 Refresh</button>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="products-table-card animate-fade-in">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" onclick="toggleAll(this)"></th>
+                        <th>Image</th>
+                        <th>Product Name</th>
+                        <th>Category</th>
+                        <th>Owner</th>
+                        <th>Stock</th>
+                        <th>Approval</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="productsBody">
+                    <!-- Loaded via JS -->
+                </tbody>
+            </table>
+            <div class="p-6 border-top flex-between" id="pagination">
+                <!-- Pagination via JS -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Slide-in Panel -->
+    <div class="side-panel-backdrop" id="panelBackdrop" onclick="closePanel()"></div>
+    <div class="side-panel" id="sidePanel">
+        <div class="panel-header">
+            <h2 id="panelTitle">Add New Product</h2>
+            <button class="btn-ghost" onclick="closePanel()">✕</button>
+        </div>
+        <div class="panel-content">
+            <form id="productForm">
+                <input type="hidden" id="editId">
+                
+                <details open class="mb-6">
+                    <summary class="font-bold cursor-pointer p-2 bg-surface-2 rounded mb-4">Basic Information</summary>
+                    <div class="form-group"><label>Product Name*</label><input type="text" id="pName" required></div>
+                    <div class="grid-2">
+                        <div class="form-group"><label>Category*</label><select id="pCategory" required></select></div>
+                        <div class="form-group"><label>Brand*</label><input type="text" id="pBrand" required></div>
+                    </div>
+                    <div class="form-group"><label>Description*</label><textarea id="pDesc" rows="4" required></textarea></div>
+                </details>
+
+                <details class="mb-6">
+                    <summary class="font-bold cursor-pointer p-2 bg-surface-2 rounded mb-4">Media (Max 5)</summary>
+                    <div class="media-grid" id="mediaGrid">
+                        <!-- Slots 0-4 -->
+                        <div class="media-slot main" onclick="triggerUpload(0)" id="slot_0"><span>+</span></div>
+                        <div class="media-slot" onclick="triggerUpload(1)" id="slot_1"><span>+</span></div>
+                        <div class="media-slot" onclick="triggerUpload(2)" id="slot_2"><span>+</span></div>
+                        <div class="media-slot" onclick="triggerUpload(3)" id="slot_3"><span>+</span></div>
+                        <div class="media-slot" onclick="triggerUpload(4)" id="slot_4"><span>+</span></div>
+                    </div>
+                    <input type="file" id="fileInput" hidden multiple accept="image/*" onchange="handleFileSelect(this.files)">
+                </details>
+
+                <details class="mb-6">
+                    <summary class="font-bold cursor-pointer p-2 bg-surface-2 rounded mb-4">Rental Plans*</summary>
+                    <div id="plansContainer">
+                        <!-- Plan rows -->
+                    </div>
+                    <button type="button" class="btn btn-ghost btn-sm mt-2" onclick="addPlanRow()">+ Add Plan</button>
+                </details>
+
+                <details class="mb-6">
+                    <summary class="font-bold cursor-pointer p-2 bg-surface-2 rounded mb-4">Pricing & Stock</summary>
+                    <div class="grid-2">
+                        <div class="form-group"><label>Security Deposit*</label><input type="number" id="pDeposit" required></div>
+                        <div class="form-group"><label>Total Units*</label><input type="number" id="pTotalUnits" required></div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group"><label>Available Units*</label><input type="number" id="pAvailUnits" required></div>
+                        <div class="form-group">
+                            <label>Visibility</label>
+                            <label class="flex-start gap-2 cursor-pointer"><input type="checkbox" id="pFeatured"> Featured</label>
+                            <label class="flex-start gap-2 cursor-pointer mt-2"><input type="checkbox" id="pAvailable" checked> Available for Rent</label>
+                        </div>
+                    </div>
+                </details>
+
+                <details class="mb-6">
+                    <summary class="font-bold cursor-pointer p-2 bg-surface-2 rounded mb-4">Tags</summary>
+                    <div class="form-group">
+                        <input type="text" id="tagInput" placeholder="Add tags (comma separated)..." onkeydown="handleTagInput(event)">
+                        <div class="tag-chips" id="tagChips"></div>
+                    </div>
+                </details>
+            </form>
+        </div>
+        <div class="panel-footer">
+            <button class="btn btn-ghost" onclick="closePanel()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitForm()" id="submitBtn">Save Product</button>
+        </div>
+    </div>
+
+    <!-- Stock Modal -->
+    <div class="modal-backdrop" id="stockModalBackdrop">
+        <div class="modal">
+            <h3 class="mb-4">Update Stock</h3>
+            <p class="text-muted mb-6" id="stockProductName">Product Name</p>
+            <div class="form-group"><label>Total Units</label><input type="number" id="mTotalUnits"></div>
+            <div class="form-group"><label>Available Units</label><input type="number" id="mAvailUnits"></div>
+            <div class="flex-end gap-4 mt-8">
+                <button class="btn btn-ghost" onclick="closeModal('stock')">Cancel</button>
+                <button class="btn btn-primary" id="saveStockBtn">Update</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../js/api.js"></script>
+    <script src="../../js/toast.js"></script>
+    <script src="../../js/loader.js"></script>
+    <script src="../../js/auth.js"></script>
+    <script src="../../js/utils.js"></script>
+
+    <script>
+        let currentFiles = [null, null, null, null, null];
+        let currentTags = [];
+        let isEditMode = false;
+        let categories = [];
+
+        async function fetchProducts() {
+            const search = document.getElementById('searchInput').value;
+            const category = document.getElementById('categoryFilter').value;
+            const status = document.getElementById('statusFilter').value;
+            
+            try {
+                const res = await API.get(`/admin/products?search=${search}&category=${category}&status=${status}`);
+                renderProducts(res.data.products);
+                document.getElementById('productCount').innerText = `${res.data.totalCount} Products total`;
+            } catch (err) {}
+        }
+
+        async function approveProduct(id) {
+            try {
+                await API.put(`/admin/products/${id}/approve`);
+                Toast.success('Product approved and is now live!');
+                fetchProducts();
+            } catch (err) {
+                Toast.error('Failed to approve product');
+            }
+        }
+
+        function renderProducts(products) {
+            const body = document.getElementById('productsBody');
+            body.innerHTML = products.map(p => {
+                const availClass = p.availableUnits === 0 ? 'text-danger' : (p.availableUnits < 3 ? 'text-warning' : 'text-success');
+                const vendorName = p.vendor?.vendorProfile?.companyName || p.vendor?.name || 'Admin';
+                return `
+                    <tr>
+                        <td><input type="checkbox" class="product-check" value="${p._id}"></td>
+                        <td><img src="${p.images[0]}" class="product-img-sm"></td>
+                        <td>
+                            <div class="font-bold">${p.name.substring(0, 30)}...</div>
+                            <div class="text-muted" style="font-size: 0.7rem;">${p.brand}</div>
+                        </td>
+                        <td>${p.category.name}</td>
+                        <td><span class="text-muted">${vendorName}</span></td>
+                        <td class="${availClass} font-bold">${p.availableUnits}/${p.totalUnits}</td>
+                        <td>
+                            <span class="badge ${p.isApproved ? 'badge-success' : 'badge-warning'}">
+                                ${p.isApproved ? 'APPROVED' : 'PENDING'}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="flex-start gap-2">
+                                ${!p.isApproved ? `<button class="btn btn-success btn-sm p-1" onclick="approveProduct('${p._id}')" title="Approve">✅</button>` : ''}
+                                <button class="btn btn-ghost btn-sm p-1" onclick="openPanel('edit', '${p._id}')" title="Edit">✏️</button>
+                                <button class="btn btn-ghost btn-sm p-1" onclick="openStockModal('${p._id}', '${p.name}', ${p.availableUnits}, ${p.totalUnits})" title="Stock">📦</button>
+                                <button class="btn btn-ghost btn-sm p-1 text-danger" onclick="deleteProduct('${p._id}')" title="Delete">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Panel Logic
+        async function openPanel(mode, id = null) {
+            isEditMode = mode === 'edit';
+            document.getElementById('panelTitle').innerText = isEditMode ? 'Edit Product' : 'Add New Product';
+            document.getElementById('productForm').reset();
+            document.getElementById('editId').value = id || '';
+            currentFiles = [null, null, null, null, null];
+            currentTags = [];
+            renderMedia();
+            renderTags();
+            document.getElementById('plansContainer').innerHTML = '';
+            
+            if (!isEditMode) addPlanRow();
+
+            if (isEditMode) {
+                const res = await API.get(`/products/${id}`); // Public API to get detail
+                const p = res.data.product;
+                document.getElementById('pName').value = p.name;
+                document.getElementById('pCategory').value = p.category._id;
+                document.getElementById('pBrand').value = p.brand;
+                document.getElementById('pDesc').value = p.description;
+                document.getElementById('pDeposit').value = p.securityDeposit;
+                document.getElementById('pTotalUnits').value = p.totalUnits;
+                document.getElementById('pAvailUnits').value = p.availableUnits;
+                document.getElementById('pFeatured').checked = p.isFeatured;
+                document.getElementById('pAvailable').checked = p.isAvailable;
+                
+                currentTags = p.tags || [];
+                renderTags();
+                
+                p.rentalPlans.forEach(plan => addPlanRow(plan));
+                
+                // Pre-load existing images as slots
+                p.images.forEach((img, i) => {
+                    if (i < 5) {
+                        const slot = document.getElementById(`slot_${i}`);
+                        slot.innerHTML = `<img src="${img}">`;
+                    }
+                });
+            }
+
+            document.getElementById('panelBackdrop').style.display = 'block';
+            setTimeout(() => document.getElementById('sidePanel').classList.add('open'), 10);
+        }
+
+        function closePanel() {
+            document.getElementById('sidePanel').classList.remove('open');
+            setTimeout(() => document.getElementById('panelBackdrop').style.display = 'none', 400);
+        }
+
+        // Media Logic
+        function triggerUpload(idx) {
+            document.getElementById('fileInput').dataset.targetIdx = idx;
+            document.getElementById('fileInput').click();
+        }
+
+        function handleFileSelect(files) {
+            const idx = parseInt(document.getElementById('fileInput').dataset.targetIdx);
+            const file = files[0];
+            if (!file) return;
+
+            if (file.size > 5 * 1024 * 1024) return Toast.error('File too large (>5MB)');
+            
+            currentFiles[idx] = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const slot = document.getElementById(`slot_${idx}`);
+                slot.innerHTML = `<img src="${e.target.result}"><span class="remove-img" onclick="removeMedia(event, ${idx})">✕</span>`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeMedia(e, idx) {
+            e.stopPropagation();
+            currentFiles[idx] = null;
+            document.getElementById(`slot_${idx}`).innerHTML = '<span>+</span>';
+        }
+
+        function renderMedia() {
+            for (let i = 0; i < 5; i++) {
+                document.getElementById(`slot_${i}`).innerHTML = '<span>+</span>';
+            }
+        }
+
+        // Plans Logic
+        function addPlanRow(data = null) {
+            const container = document.getElementById('plansContainer');
+            const row = document.createElement('div');
+            row.className = 'rental-plan-row';
+            row.innerHTML = `
+                <input type="number" placeholder="Mo" value="${data ? data.duration : ''}" class="p-duration">
+                <input type="text" placeholder="Label (e.g. 6 Months Plan)" value="${data ? data.label : ''}" class="p-label">
+                <input type="number" placeholder="₹/mo" value="${data ? data.monthlyPrice : ''}" class="p-monthly">
+                <input type="number" placeholder="Total" value="${data ? data.totalPrice : ''}" readonly class="p-total bg-surface-2">
+                <button type="button" class="btn btn-ghost btn-sm text-danger" onclick="this.parentElement.remove()">✕</button>
+            `;
+            
+            // Auto-calc total
+            const inputs = row.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.oninput = () => {
+                    const dur = row.querySelector('.p-duration').value;
+                    const mon = row.querySelector('.p-monthly').value;
+                    row.querySelector('.p-total').value = (dur && mon) ? dur * mon : 0;
+                };
+            });
+
+            container.appendChild(row);
+        }
+
+        // Tags Logic
+        function handleTagInput(e) {
+            if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault();
+                const val = e.target.value.trim().replace(',', '');
+                if (val && !currentTags.includes(val)) {
+                    currentTags.push(val);
+                    renderTags();
+                }
+                e.target.value = '';
+            }
+        }
+
+        function renderTags() {
+            const container = document.getElementById('tagChips');
+            container.innerHTML = currentTags.map((t, i) => `<div class="chip">${t} <span onclick="removeTag(${i})">✕</span></div>`).join('');
+        }
+
+        function removeTag(i) {
+            currentTags.splice(i, 1);
+            renderTags();
+        }
+
+        // Submit
+        async function submitForm() {
+            const btn = document.getElementById('submitBtn');
+            btnLoader(btn);
+
+            const formData = new FormData();
+            formData.append('name', document.getElementById('pName').value);
+            formData.append('category', document.getElementById('pCategory').value);
+            formData.append('brand', document.getElementById('pBrand').value);
+            formData.append('description', document.getElementById('pDesc').value);
+            formData.append('securityDeposit', document.getElementById('pDeposit').value);
+            formData.append('totalUnits', document.getElementById('pTotalUnits').value);
+            formData.append('availableUnits', document.getElementById('pAvailUnits').value);
+            formData.append('isFeatured', document.getElementById('pFeatured').checked);
+            formData.append('isAvailable', document.getElementById('pAvailable').checked);
+            formData.append('tags', JSON.stringify(currentTags));
+
+            // Plans
+            const plans = Array.from(document.querySelectorAll('.rental-plan-row')).map(row => ({
+                duration: row.querySelector('.p-duration').value,
+                label: row.querySelector('.p-label').value,
+                monthlyPrice: row.querySelector('.p-monthly').value,
+                totalPrice: row.querySelector('.p-total').value
+            }));
+            formData.append('rentalPlans', JSON.stringify(plans));
+
+            // Images
+            currentFiles.forEach(file => {
+                if (file) formData.append('images', file);
+            });
+
+            try {
+                const id = document.getElementById('editId').value;
+                if (isEditMode) {
+                    await API.put(`/admin/products/${id}`, formData);
+                    Toast.success('Product updated!');
+                } else {
+                    await API.post('/admin/products', formData);
+                    Toast.success('Product created!');
+                }
+                closePanel();
+                fetchProducts();
+            } catch (err) {
+                btnLoaderDone(btn, false);
+                Toast.error(err.message);
+            }
+        }
+
+        // Stock Modal
+        function openStockModal(id, name, avail, total) {
+            document.getElementById('stockProductName').innerText = name;
+            document.getElementById('mAvailUnits').value = avail;
+            document.getElementById('mTotalUnits').value = total;
+            document.getElementById('stockModalBackdrop').style.display = 'flex';
+            document.getElementById('saveStockBtn').onclick = () => updateStock(id);
+        }
+
+        async function updateStock(id) {
+            try {
+                await API.put(`/admin/products/${id}/stock`, {
+                    availableUnits: document.getElementById('mAvailUnits').value,
+                    totalUnits: document.getElementById('mTotalUnits').value
+                });
+                Toast.success('Stock updated!');
+                closeModal('stock');
+                fetchProducts();
+            } catch (err) {
+                Toast.error(err.message);
+            }
+        }
+
+        function closeModal(type) {
+            document.getElementById(`${type}ModalBackdrop`).style.display = 'none';
+        }
+
+        async function approveProduct(id) {
+            if (confirm('Approve this product and make it live?')) {
+                try {
+                    await API.put(`/admin/products/${id}/approve`);
+                    Toast.success('Product approved and live!');
+                    fetchProducts();
+                } catch (err) {
+                    Toast.error(err.message);
+                }
+            }
+        }
+
+        async function deleteProduct(id) {
+            if (confirm('Are you sure you want to deactivate this product?')) {
+                try {
+                    await API.delete(`/admin/products/${id}`);
+                    Toast.success('Product deactivated');
+                    fetchProducts();
+                } catch (err) {
+                    Toast.error(err.message);
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Sidebar Init
+            const sidebar = document.getElementById('sidebar');
+            sidebar.innerHTML = `
+                <div class="admin-logo"><span>RentEase</span><span class="admin-badge">ADMIN</span></div>
+                <nav class="nav-list">
+                    <a href="/pages/admin/dashboard.html" class="nav-item">📊 Dashboard</a>
+                    <a href="/pages/admin/products.html" class="nav-item active">🪑 Products</a>
+                    <a href="/pages/admin/orders.html" class="nav-item">📦 Orders</a>
+                    <a href="/pages/profile.html" class="nav-item">👤 My Profile</a>
+                    <a href="/pages/admin/users.html" class="nav-item">👥 Users</a>
+                    <a href="/pages/admin/maintenance.html" class="nav-item">🛠️ Maintenance</a>
+                </nav>
+                <div style="padding: 0 var(--space-6) var(--space-6);">
+                    <button class="btn btn-outline" style="width: 100%; border-color: rgba(255,255,255,0.2); color: white;" onclick="Auth.logout()">Logout</button>
+                </div>
+            `;
+
+            const catRes = await API.get('/products/categories/all');
+            categories = catRes.data.categories;
+            const catSelects = [document.getElementById('categoryFilter'), document.getElementById('pCategory')];
+            catSelects.forEach(s => {
+                categories.forEach(c => {
+                    s.innerHTML += `<option value="${c._id}">${c.name}</option>`;
+                });
+            });
+
+            Auth.init();
+            fetchProducts();
+        });
+    </script>
+</body>
+</html>

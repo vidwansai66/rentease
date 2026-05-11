@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Orders | RentEase</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="../../css/variables.css">
+    <link rel="stylesheet" href="../../css/reset.css">
+    <link rel="stylesheet" href="../../css/global.css">
+    <link rel="stylesheet" href="../../css/components.css">
+    <link rel="stylesheet" href="../../css/animations.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <script src="../../js/vendor-guard.js"></script>
+
+    <style>
+        body { background: var(--color-bg); display: flex; min-height: 100vh; }
+        
+        .vendor-sidebar { 
+            width: var(--sidebar-width); 
+            background: #1E293B; 
+            display: flex; 
+            flex-direction: column; 
+            position: fixed; 
+            height: 100vh; 
+            z-index: var(--z-sticky); 
+            color: white;
+            padding: var(--space-8) 0;
+        }
+
+        .vendor-logo { 
+            padding: 0 var(--space-8) var(--space-8); 
+            border-bottom: 1px solid rgba(255,255,255,0.1); 
+            margin-bottom: var(--space-8); 
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: var(--font-display);
+        }
+
+        .vendor-badge { 
+            background: var(--color-secondary); 
+            color: white; 
+            font-size: 0.65rem; 
+            padding: 2px 8px; 
+            border-radius: var(--radius-sm); 
+            font-weight: 800; 
+        }
+
+        .nav-list { list-style: none; flex-grow: 1; padding: 0 var(--space-4); }
+        .nav-item { 
+            display: flex; 
+            align-items: center; 
+            gap: var(--space-4); 
+            padding: var(--space-4) var(--space-6); 
+            color: rgba(255,255,255,0.6); 
+            border-radius: var(--radius-md);
+            transition: all var(--transition-fast);
+            margin-bottom: var(--space-1);
+            font-weight: 500;
+            text-decoration: none;
+        }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-item.active { background: var(--color-secondary); color: white; box-shadow: var(--shadow-md); }
+
+        .vendor-main { 
+            margin-left: var(--sidebar-width); 
+            flex-grow: 1; 
+            padding: var(--space-12); 
+            max-width: 1400px;
+        }
+
+        .order-table-card { background: white; border-radius: var(--radius-xl); border: 1px solid var(--color-border); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: var(--color-surface-2); text-align: left; padding: var(--space-4) var(--space-6); font-size: 0.8rem; text-transform: uppercase; color: var(--color-text-secondary); }
+        td { padding: var(--space-6); border-top: 1px solid var(--color-border); vertical-align: middle; }
+    </style>
+</head>
+<body>
+
+    <aside class="vendor-sidebar">
+        <div class="vendor-logo"><span>RentEase</span><span class="vendor-badge">VENDOR</span></div>
+        <nav class="nav-list">
+            <a href="/pages/vendor/dashboard.html" class="nav-item">📊 Overview</a>
+            <a href="/pages/vendor/products.html" class="nav-item">🪑 My Products</a>
+            <a href="/pages/vendor/orders.html" class="nav-item active">📦 Sales & Orders</a>
+            <a href="/pages/profile.html" class="nav-item" style="margin-top: var(--space-12); border-top: 1px solid rgba(255,255,255,0.1); padding-top: var(--space-4);">⚙️ Profile Settings</a>
+        </nav>
+        <div style="padding: 0 var(--space-6) var(--space-6);">
+            <button class="btn btn-outline" style="width: 100%; border-color: rgba(255,255,255,0.2); color: white;" onclick="Auth.logout()">Logout</button>
+        </div>
+    </aside>
+
+    <main class="vendor-main">
+        <div class="flex-between mb-12">
+            <div>
+                <h1 style="font-family: var(--font-display);">Orders & Sales</h1>
+                <p class="text-muted">Track your revenue and manage active rental orders.</p>
+            </div>
+            <button class="btn btn-outline" onclick="exportData()">Download Report (CSV)</button>
+        </div>
+
+        <div class="order-table-card">
+            <table id="ordersTable">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Product</th>
+                        <th>Date</th>
+                        <th>Revenue</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="ordersBody">
+                    <tr>
+                        <td colspan="6" class="text-center py-20 text-muted">No orders found yet.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script src="../../js/api.js"></script>
+    <script src="../../js/toast.js"></script>
+    <script src="../../js/loader.js"></script>
+    <script src="../../js/auth.js"></script>
+    <script>
+        async function fetchOrders() {
+            try {
+                const res = await API.get('/vendor/orders');
+                const orders = res.data.orders;
+                const body = document.getElementById('ordersBody');
+                
+                if (orders.length === 0) {
+                    body.innerHTML = '<tr><td colspan="6" class="text-center py-20 text-muted">No orders found yet.</td></tr>';
+                    return;
+                }
+
+                body.innerHTML = orders.map(o => `
+                    <tr>
+                        <td>
+                            <div class="font-bold">#${o.orderNumber}</div>
+                            <div class="text-muted small">${new Date(o.createdAt).toLocaleDateString()}</div>
+                        </td>
+                        <td>
+                            <div class="flex-start gap-4">
+                                <img src="${o.items[0].product.images[0]}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
+                                <div>
+                                    <div class="font-medium">${o.items[0].product.name}</div>
+                                    <div class="text-muted small">${o.items.length > 1 ? `+ ${o.items.length - 1} more items` : ''}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>${o.user.name}<br><span class="text-muted small">${o.user.email}</span></td>
+                        <td class="font-bold text-primary">₹${o.vendorTotal.toLocaleString()}</td>
+                        <td>
+                            <span class="status-badge" style="background: #E0E7FF; color: #3730A3;">${o.orderStatus}</span>
+                        </td>
+                        <td>
+                            <button class="btn btn-ghost btn-sm" onclick="viewOrder('${o._id}')">Details</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                Toast.error('Failed to load orders');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            Auth.init();
+            fetchOrders();
+        });
+    </script>
+</body>
+</html>

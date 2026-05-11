@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up | RentEase</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/reset.css">
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/animations.css">
+    <style>
+        body { height: 100vh; overflow: hidden; display: flex; }
+        .left-panel {
+            width: 45%;
+            background: linear-gradient(135deg, #1A3C5E 0%, #0F2235 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: var(--space-20);
+            color: white;
+            text-align: center;
+        }
+        .right-panel {
+            width: 55%;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: var(--space-20);
+            overflow-y: auto;
+        }
+        .form-container { max-width: 450px; margin: 0 auto; width: 100%; }
+        .logo-box { margin-bottom: var(--space-12); }
+        .tagline { font-family: 'Playfair Display', serif; font-size: 2.5rem; margin-bottom: var(--space-8); }
+        
+        .floating-label { position: relative; margin-bottom: var(--space-4); }
+        .floating-label input { width: 100%; padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: 1rem; }
+        .floating-label label { position: absolute; left: var(--space-3); top: 50%; transform: translateY(-50%); transition: all 0.2s ease; pointer-events: none; color: var(--color-text-muted); }
+        .floating-label input:focus + label, .floating-label input:not(:placeholder-shown) + label { top: 0; left: var(--space-2); background: white; padding: 0 var(--space-1); font-size: 0.75rem; color: var(--color-primary); }
+        
+        .validation-icon { position: absolute; right: var(--space-3); top: 50%; transform: translateY(-50%); display: none; }
+        
+        .strength-meter { height: 4px; background: var(--color-surface-2); border-radius: 2px; margin-top: var(--space-2); display: flex; gap: 4px; }
+        .strength-segment { flex: 1; height: 100%; border-radius: 2px; background: #E2E8F0; transition: all 0.3s; }
+        .strength-weak { background: var(--color-danger); }
+        .strength-medium { background: var(--color-warning); }
+        .strength-strong { background: var(--color-success); }
+        
+        .auth-footer { margin-top: var(--space-6); text-align: center; color: var(--color-text-secondary); }
+    </style>
+</head>
+<body>
+    <div class="left-panel animate-fade-in">
+        <div class="logo-box">
+            <svg width="48" height="48" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="32" height="32" rx="8" fill="var(--color-accent)"/>
+                <path d="M16 8L24 16L16 24L8 16L16 8Z" fill="var(--color-primary)"/>
+            </svg>
+        </div>
+        <h1 class="tagline">Start your premium<br>living today.</h1>
+        <p style="color: rgba(255,255,255,0.7); max-width: 300px;">Join 15,000+ urban professionals who choose flexibility over ownership.</p>
+    </div>
+    
+    <div class="right-panel animate-fade-in delay-1">
+        <div class="form-container">
+            <h2 style="font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 2rem; margin-bottom: var(--space-2);">Create Account</h2>
+            <p style="color: var(--color-text-secondary); margin-bottom: var(--space-8);">Fill in the details below to get started.</p>
+            
+            <form id="registerForm">
+                <div class="floating-label">
+                    <input type="text" id="nameInput" placeholder=" " required>
+                    <label for="nameInput">Full Name</label>
+                </div>
+                <div class="floating-label">
+                    <input type="email" id="emailInput" placeholder=" " required>
+                    <label for="emailInput">Email Address</label>
+                </div>
+                <div class="floating-label">
+                    <input type="tel" id="phoneInput" placeholder=" " required>
+                    <label for="phoneInput">Phone Number (10 digits)</label>
+                </div>
+                <div class="floating-label">
+                    <input type="password" id="passwordInput" placeholder=" " required oninput="checkStrength(this.value)">
+                    <label for="passwordInput">Create Password</label>
+                    <div class="strength-meter">
+                        <div class="strength-segment" id="s1"></div>
+                        <div class="strength-segment" id="s2"></div>
+                        <div class="strength-segment" id="s3"></div>
+                        <div class="strength-segment" id="s4"></div>
+                    </div>
+                </div>
+                <div class="floating-label">
+                    <input type="password" id="confirmPasswordInput" placeholder=" " required>
+                    <label for="confirmPasswordInput">Confirm Password</label>
+                </div>
+                
+                <label class="flex-start" style="cursor: pointer; margin-bottom: var(--space-6); align-items: center; gap: 8px;">
+                    <input type="checkbox" required style="width: 16px; height: 16px; accent-color: var(--color-primary);"> <span style="font-size: 0.875rem;">I agree to the <a href="#" style="color: var(--color-primary); font-weight: 600;">Terms & Conditions</a></span>
+                </label>
+                
+                <button type="submit" id="submitBtn" class="btn btn-primary btn-lg" style="width: 100%;">Create Account</button>
+            </form>
+            
+            <p class="auth-footer">Already have an account? <a href="login.html" style="color: var(--color-primary); font-weight: 700;">Login here</a></p>
+        </div>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/toast.js"></script>
+    <script src="../js/loader.js"></script>
+    <script src="../js/auth.js"></script>
+    <script>
+        function checkStrength(p) {
+            const s1 = document.getElementById('s1');
+            const s2 = document.getElementById('s2');
+            const s3 = document.getElementById('s3');
+            const s4 = document.getElementById('s4');
+            const segments = [s1, s2, s3, s4];
+            segments.forEach(s => s.className = 'strength-segment');
+
+            if (p.length > 0) s1.className += ' strength-weak';
+            if (p.length > 5) s2.className += ' strength-weak';
+            if (/[A-Z]/.test(p) && p.length > 7) s3.className = 'strength-segment strength-medium';
+            if (/[0-9]/.test(p) && p.length > 8) {
+                segments.forEach(s => s.className = 'strength-segment strength-strong');
+            }
+        }
+    </script>
+</body>
+</html>

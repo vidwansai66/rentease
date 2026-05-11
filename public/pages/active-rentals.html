@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Active Rentals | RentEase</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/reset.css">
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/animations.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+
+    <style>
+        body { background: var(--color-bg); display: flex; min-height: 100vh; }
+        
+        /* Dashboard Sidebar - Premium SaaS Style */
+        .dashboard-sidebar { 
+            width: var(--sidebar-width); 
+            background: var(--color-primary-dark); 
+            display: flex; 
+            flex-direction: column; 
+            position: fixed; 
+            height: 100vh; 
+            z-index: var(--z-sticky); 
+            color: white;
+            padding: var(--space-8) 0;
+            transition: all var(--transition-base);
+        }
+
+        .user-profile-summary { 
+            padding: 0 var(--space-8) var(--space-8); 
+            border-bottom: 1px solid rgba(255,255,255,0.1); 
+            margin-bottom: var(--space-8); 
+        }
+
+        .avatar-circle { 
+            width: 56px; 
+            height: 56px; 
+            border-radius: var(--radius-lg); 
+            background: var(--color-accent); 
+            color: var(--color-primary-dark); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-weight: 800; 
+            font-size: 1.25rem;
+            margin-bottom: var(--space-4); 
+            box-shadow: var(--shadow-glow);
+        }
+
+        .nav-list { list-style: none; flex-grow: 1; padding: 0 var(--space-4); }
+        
+        .nav-item { 
+            display: flex; 
+            align-items: center; 
+            gap: var(--space-4); 
+            padding: var(--space-4) var(--space-6); 
+            color: rgba(255,255,255,0.6); 
+            border-radius: var(--radius-md);
+            transition: all var(--transition-fast);
+            margin-bottom: var(--space-1);
+            font-weight: 500;
+        }
+
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-item.active { background: var(--color-accent); color: var(--color-primary-dark); box-shadow: var(--shadow-md); }
+
+        .dashboard-main { 
+            margin-left: var(--sidebar-width); 
+            flex-grow: 1; 
+            padding: var(--space-12); 
+            max-width: 1400px;
+        }
+
+        /* Rental Cards */
+        .rental-card { background: white; border-radius: var(--radius-xl); border: 1px solid var(--color-border); padding: var(--space-8); margin-bottom: var(--space-6); transition: transform 0.2s; }
+        .rental-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+        
+        .progress-bar-outer { height: 8px; background: var(--color-surface-2); border-radius: 4px; overflow: hidden; margin: var(--space-4) 0; }
+        .progress-bar-inner { height: 100%; transition: width 1s ease; }
+        
+        .rental-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4); margin-top: var(--space-6); border-top: 1px solid var(--color-border); padding-top: var(--space-6); }
+
+        /* Tabs */
+        .filter-tabs { display: flex; gap: var(--space-6); margin-bottom: var(--space-8); border-bottom: 1px solid var(--color-border); padding-bottom: 1px; }
+        .tab-btn { padding: 12px 20px; cursor: pointer; color: var(--color-text-muted); font-weight: 600; border-bottom: 2px solid transparent; transition: all 0.2s; }
+        .tab-btn.active { color: var(--color-primary); border-color: var(--color-accent); }
+
+        /* Modals */
+        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .modal { background: white; width: 90%; max-width: 500px; border-radius: var(--radius-xl); padding: var(--space-10); animation: slideUp 0.3s ease; }
+
+        @media (max-width: 768px) {
+            .dashboard-main { margin-left: 0; padding: var(--space-6); }
+            .rental-actions { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <aside class="dashboard-sidebar" id="sidebar">
+        <div class="user-profile-summary">
+            <div class="avatar-circle" id="userAvatar">U</div>
+            <div style="font-weight: 700; font-size: 1.1rem;" id="userName">User Name</div>
+            <div style="font-size: 0.8125rem; opacity: 0.5;" id="userEmail">user@example.com</div>
+        </div>
+        <nav class="nav-list">
+            <a href="/pages/dashboard.html" class="nav-item">🏠 Dashboard</a>
+            <a href="/pages/active-rentals.html" class="nav-item active">🛋️ Active Rentals</a>
+            <a href="/pages/rental-history.html" class="nav-item">📜 Rental History</a>
+            <a href="/pages/maintenance.html" class="nav-item">🛠️ Maintenance</a>
+            <a href="/pages/profile.html" class="nav-item">⚙️ Profile Settings</a>
+        </nav>
+        <div style="padding: 0 var(--space-6) var(--space-6);">
+            <button class="btn btn-outline" style="width: 100%; border-color: rgba(255,255,255,0.2); color: white;" onclick="Auth.logout()">Logout</button>
+        </div>
+    </aside>
+
+    <main class="dashboard-main">
+        <h1 class="mb-8" style="font-family: var(--font-display);">Your Active Rentals</h1>
+
+        <div class="filter-tabs">
+            <div class="tab-btn active" onclick="setFilter('all', this)">All</div>
+            <div class="tab-btn" onclick="setFilter('active', this)">Active</div>
+            <div class="tab-btn" onclick="setFilter('expiring', this)">Expiring Soon</div>
+            <div class="tab-btn" onclick="setFilter('expired', this)">Expired</div>
+        </div>
+
+        <div id="rentalsList">
+            <!-- Skeletons -->
+            <div class="skeleton mb-6" style="height: 200px; width: 100%;"></div>
+            <div class="skeleton mb-6" style="height: 200px; width: 100%;"></div>
+        </div>
+    </main>
+
+    <!-- Extend Modal -->
+    <div class="modal-backdrop" id="extendModalBackdrop">
+        <div class="modal">
+            <h3 class="mb-6">Extend Your Rental</h3>
+            <p class="text-muted mb-8">Choose an extension plan. Your new end date will be calculated automatically.</p>
+            
+            <div class="flex-direction-column d-flex gap-4 mb-8" id="extensionOptions">
+                <!-- Loaded via JS -->
+            </div>
+
+            <div class="flex-end gap-4">
+                <button class="btn btn-ghost" onclick="closeModal('extend')">Cancel</button>
+                <button class="btn btn-primary" id="confirmExtendBtn">Confirm Extension</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Return Modal -->
+    <div class="modal-backdrop" id="returnModalBackdrop">
+        <div class="modal">
+            <h3 class="mb-6">Request Return / Pickup</h3>
+            <div class="flex-direction-column d-flex gap-4">
+                <div>
+                    <label class="block mb-2 font-bold">Reason for return</label>
+                    <select id="returnReason" class="w-100" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--color-border);">
+                        <option value="moving">Moving Out</option>
+                        <option value="no-longer-needed">No longer needed</option>
+                        <option value="switching">Switching products</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block mb-2 font-bold">Preferred pickup date</label>
+                    <input type="date" id="pickupDate" class="w-100" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--color-border);">
+                </div>
+                <div>
+                    <label class="block mb-2 font-bold">Notes (optional)</label>
+                    <textarea id="returnNotes" class="w-100" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--color-border);"></textarea>
+                </div>
+            </div>
+            <div class="flex-end gap-4 mt-8">
+                <button class="btn btn-ghost" onclick="closeModal('return')">Cancel</button>
+                <button class="btn btn-primary" id="confirmReturnBtn">Schedule Pickup</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/toast.js"></script>
+    <script src="../js/loader.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/utils.js"></script>
+
+    <script>
+        let allRentals = [];
+        let currentFilter = 'all';
+
+        async function fetchRentals() {
+            try {
+                const res = await API.get('/rentals');
+                allRentals = res.data.rentals;
+                renderRentals();
+            } catch (err) {
+                Toast.error('Failed to load rentals');
+            }
+        }
+
+        function setFilter(filter, btn) {
+            currentFilter = filter;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderRentals();
+        }
+
+        function renderRentals() {
+            const list = document.getElementById('rentalsList');
+            let filtered = allRentals;
+
+            if (currentFilter === 'active') filtered = allRentals.filter(r => r.status === 'active');
+            if (currentFilter === 'expiring') filtered = allRentals.filter(r => r.isExpiringSoon);
+            if (currentFilter === 'expired') filtered = allRentals.filter(r => r.status === 'expired');
+
+            if (filtered.length === 0) {
+                list.innerHTML = '<div class="text-center py-20 bg-white rounded-xl"><h3>No rentals found matching this filter.</h3><a href="/pages/products.html" class="btn btn-primary mt-6">Rent Something New</a></div>';
+                return;
+            }
+
+            list.innerHTML = filtered.map(r => {
+                const progressColor = r.percentRemaining > 50 ? 'var(--color-success)' : (r.percentRemaining > 25 ? 'var(--color-warning)' : 'var(--color-danger)');
+                const statusBadge = r.status === 'active' ? 'badge-success' : (r.status === 'expired' ? 'badge-danger' : 'badge-info');
+
+                return `
+                    <div class="rental-card animate-fade-in">
+                        <div class="flex-between mb-6">
+                            <div class="flex-start gap-4">
+                                <img src="${r.product.images[0]}" style="width: 80px; height: 80px; object-fit: cover; border-radius: var(--radius-lg);">
+                                <div>
+                                    <h3 style="margin-bottom: 4px;">${r.product.name}</h3>
+                                    <div class="text-muted" style="font-size: 0.8rem;">Order #${r.order.orderNumber} · ${r.product.brand}</div>
+                                </div>
+                            </div>
+                            <span class="badge ${statusBadge}">${r.status.toUpperCase()}</span>
+                        </div>
+
+                        <div class="grid-2 mb-6">
+                            <div>
+                                <div class="text-muted" style="font-size: 0.75rem;">Current Plan</div>
+                                <div class="font-bold">${r.rentalPlan.label} · ₹${r.rentalPlan.monthlyPrice.toLocaleString()}/mo</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-muted" style="font-size: 0.75rem;">Next Payment</div>
+                                <div class="font-bold">${new Date(r.nextPaymentDate).toLocaleDateString('en-IN', {day:'numeric', month:'short'})} · ₹${r.rentalPlan.monthlyPrice.toLocaleString()}</div>
+                            </div>
+                        </div>
+
+                        <div class="flex-between text-muted" style="font-size: 0.75rem;">
+                            <span>Started: ${new Date(r.startDate).toLocaleDateString()}</span>
+                            <span>Ends: ${new Date(r.endDate).toLocaleDateString()}</span>
+                        </div>
+                        <div class="progress-bar-outer">
+                            <div class="progress-bar-inner" style="width: ${r.percentRemaining}%; background: ${progressColor};"></div>
+                        </div>
+                        <div class="text-right text-muted" style="font-size: 0.7rem;">${r.percentRemaining}% time remaining</div>
+
+                        <div class="rental-actions">
+                            <button class="btn btn-outline btn-sm" onclick="location.href='/pages/maintenance.html?rentalId=${r._id}'">Maintenance</button>
+                            <button class="btn btn-outline btn-sm" onclick="openExtendModal('${r._id}', '${r.endDate}')">Extend Plan</button>
+                            <button class="btn btn-outline btn-sm text-danger" onclick="openReturnModal('${r._id}')">Return Item</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Extend Logic
+        function openExtendModal(id, endDate) {
+            const backdrop = document.getElementById('extendModalBackdrop');
+            const options = document.getElementById('extensionOptions');
+            const currentEnd = new Date(endDate);
+            
+            const plans = [
+                { months: 3, label: '+3 Months' },
+                { months: 6, label: '+6 Months' },
+                { months: 12, label: '+12 Months' }
+            ];
+
+            options.innerHTML = plans.map(p => {
+                const newEnd = new Date(currentEnd);
+                newEnd.setMonth(newEnd.getMonth() + p.months);
+                return `
+                    <label class="flex-between p-4 border rounded cursor-pointer hover-bg-surface" style="border: 1px solid var(--color-border); border-radius: 8px;">
+                        <div class="flex-start gap-4">
+                            <input type="radio" name="extPlan" value="${p.months}">
+                            <div>
+                                <div class="font-bold">${p.label}</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">New End Date: ${newEnd.toLocaleDateString()}</div>
+                            </div>
+                        </div>
+                    </label>
+                `;
+            }).join('');
+
+            backdrop.style.display = 'flex';
+            document.getElementById('confirmExtendBtn').onclick = () => handleExtend(id);
+        }
+
+        async function handleExtend(id) {
+            const selected = document.querySelector('input[name="extPlan"]:checked');
+            if (!selected) return Toast.warning('Please select an extension plan');
+
+            try {
+                await API.put(`/rentals/${id}/extend`, { extensionMonths: selected.value });
+                Toast.success('Rental extended successfully!');
+                closeModal('extend');
+                fetchRentals();
+            } catch (err) {
+                Toast.error(err.message);
+            }
+        }
+
+        // Return Logic
+        function openReturnModal(id) {
+            const backdrop = document.getElementById('returnModalBackdrop');
+            const dateInput = document.getElementById('pickupDate');
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            dateInput.min = tomorrow.toISOString().split('T')[0];
+            
+            backdrop.style.display = 'flex';
+            document.getElementById('confirmReturnBtn').onclick = () => handleReturn(id);
+        }
+
+        async function handleReturn(id) {
+            const reason = document.getElementById('returnReason').value;
+            const date = document.getElementById('pickupDate').value;
+            if (!date) return Toast.warning('Please select a pickup date');
+
+            try {
+                await API.post(`/rentals/${id}/return-request`, { reason, scheduledDate: date });
+                Toast.success('Return request submitted!');
+                closeModal('return');
+                fetchRentals();
+            } catch (err) {
+                Toast.error(err.message);
+            }
+        }
+
+        function closeModal(type) {
+            document.getElementById(`${type}ModalBackdrop`).style.display = 'none';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = Auth.getStoredUser();
+            if (!user) {
+                window.location.href = '/pages/login.html';
+                return;
+            }
+            document.getElementById('userName').innerText = user.name;
+            document.getElementById('userEmail').innerText = user.email;
+            document.getElementById('userAvatar').innerText = user.name.split(' ').map(n=>n[0]).join('').toUpperCase();
+
+            Auth.init();
+            fetchRentals();
+        });
+    </script>
+</body>
+</html>

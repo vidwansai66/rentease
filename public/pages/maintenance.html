@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maintenance & Support | RentEase</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/reset.css">
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/animations.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+
+    <style>
+        body { background: var(--color-bg); display: flex; min-height: 100vh; overflow: hidden; }
+        
+        /* Dashboard Sidebar - Premium SaaS Style */
+        .dashboard-sidebar { 
+            width: var(--sidebar-width); 
+            background: var(--color-primary-dark); 
+            display: flex; 
+            flex-direction: column; 
+            position: fixed; 
+            height: 100vh; 
+            z-index: var(--z-sticky); 
+            color: white;
+            padding: var(--space-8) 0;
+            transition: all var(--transition-base);
+        }
+
+        .user-profile-summary { 
+            padding: 0 var(--space-8) var(--space-8); 
+            border-bottom: 1px solid rgba(255,255,255,0.1); 
+            margin-bottom: var(--space-8); 
+        }
+
+        .avatar-circle { 
+            width: 56px; 
+            height: 56px; 
+            border-radius: var(--radius-lg); 
+            background: var(--color-accent); 
+            color: var(--color-primary-dark); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-weight: 800; 
+            font-size: 1.25rem;
+            margin-bottom: var(--space-4); 
+            box-shadow: var(--shadow-glow);
+        }
+
+        .nav-list { list-style: none; flex-grow: 1; padding: 0 var(--space-4); }
+        
+        .nav-item { 
+            display: flex; 
+            align-items: center; 
+            gap: var(--space-4); 
+            padding: var(--space-4) var(--space-6); 
+            color: rgba(255,255,255,0.6); 
+            border-radius: var(--radius-md);
+            transition: all var(--transition-fast);
+            margin-bottom: var(--space-1);
+            font-weight: 500;
+        }
+
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-item.active { background: var(--color-accent); color: var(--color-primary-dark); box-shadow: var(--shadow-md); }
+
+        .maintenance-container { 
+            display: flex; 
+            flex-grow: 1; 
+            margin-left: var(--sidebar-width); 
+            height: 100vh; 
+        }
+
+        /* Left Panel: Ticket List */
+        .ticket-list-panel { width: 320px; background: white; border-right: 1px solid var(--color-border); display: flex; flex-direction: column; }
+        .list-header { padding: var(--space-6); border-bottom: 1px solid var(--color-border); }
+        .tickets-scroll { flex-grow: 1; overflow-y: auto; }
+        
+        .ticket-item { padding: var(--space-6); border-bottom: 1px solid var(--color-border); cursor: pointer; transition: all 0.2s; position: relative; }
+        .ticket-item:hover { background: var(--color-surface-2); }
+        .ticket-item.active { background: rgba(26, 60, 94, 0.05); border-left: 4px solid var(--color-accent); }
+        .unread-dot { position: absolute; top: 20px; right: 20px; width: 8px; height: 8px; background: var(--color-accent); border-radius: 50%; }
+
+        /* Right Panel: Ticket Detail */
+        .ticket-detail-panel { flex-grow: 1; background: white; overflow-y: auto; padding: var(--space-10); }
+        
+        /* Timeline */
+        .timeline { position: relative; padding-left: 40px; margin-top: 40px; }
+        .timeline::before { content: ''; position: absolute; left: 19px; top: 0; bottom: 0; width: 2px; background: var(--color-border); }
+        .timeline-item { position: relative; margin-bottom: 40px; }
+        .timeline-marker { position: absolute; left: -21px; top: 4px; width: 6px; height: 6px; border-radius: 50%; background: white; border: 2px solid var(--color-border); box-shadow: 0 0 0 4px white; z-index: 2; }
+        .timeline-item.completed .timeline-marker { background: var(--color-success); border-color: var(--color-success); }
+        .timeline-item.active .timeline-marker { background: var(--color-accent); border-color: var(--color-accent); box-shadow: 0 0 0 4px white, 0 0 0 6px rgba(244, 166, 35, 0.2); }
+
+        /* Wizard Overlay */
+        .wizard-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 2000; display: none; overflow-y: auto; padding: 40px 20px; animation: slideUp 0.4s ease; }
+        .wizard-container { max-width: 600px; margin: 0 auto; }
+        
+        .upload-zone { border: 2px dashed var(--color-border); border-radius: var(--radius-lg); padding: 40px; text-align: center; transition: all 0.3s; cursor: pointer; }
+        .upload-zone.dragover { border-color: var(--color-accent); background: rgba(244, 166, 35, 0.05); }
+        
+        .preview-grid { display: flex; gap: 12px; margin-top: 20px; }
+        .preview-img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; position: relative; }
+        .remove-img { position: absolute; top: -5px; right: -5px; background: var(--color-danger); color: white; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; }
+
+        .floating-btn { position: fixed; bottom: 40px; right: 40px; width: 60px; height: 60px; border-radius: 50%; background: var(--color-primary); color: white; box-shadow: var(--shadow-lg); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; cursor: pointer; z-index: 500; transition: transform 0.2s; }
+        .floating-btn:hover { transform: scale(1.1); }
+
+        .lightbox { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 3000; display: none; align-items: center; justify-content: center; }
+        .lightbox img { max-width: 90%; max-height: 90%; }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <aside class="dashboard-sidebar" id="sidebar">
+        <!-- Profile summary will be injected via JS -->
+    </aside>
+
+    <div class="maintenance-container">
+        <!-- Left Panel -->
+        <aside class="ticket-list-panel">
+            <div class="list-header">
+                <h2 class="mb-4">My Tickets</h2>
+                <div class="flex-start gap-4 text-muted" style="font-size: 0.8rem;">
+                    <span class="cursor-pointer active" onclick="filterTickets('all', this)">All</span>
+                    <span class="cursor-pointer" onclick="filterTickets('open', this)">Open</span>
+                    <span class="cursor-pointer" onclick="filterTickets('resolved', this)">Resolved</span>
+                </div>
+            </div>
+            <div class="tickets-scroll" id="ticketList">
+                <!-- Items via JS -->
+            </div>
+        </aside>
+
+        <!-- Right Panel -->
+        <main class="ticket-detail-panel" id="ticketDetail">
+            <div class="flex-center flex-direction-column h-100 text-center py-20" id="detailEmpty">
+                <div style="font-size: 4rem; opacity: 0.1;">🎫</div>
+                <h2 class="mt-4">Select a ticket to view details</h2>
+                <p class="text-muted mt-2">Or create a new request using the + button.</p>
+            </div>
+            
+            <div id="detailContent" style="display:none;">
+                <!-- Content via JS -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Floating Button -->
+    <div class="floating-btn" onclick="openWizard()">+</div>
+
+    <!-- New Ticket Wizard -->
+    <div class="wizard-overlay" id="wizard">
+        <div class="wizard-container">
+            <div class="flex-between mb-12">
+                <h1 id="wizardTitle">1. Select Item</h1>
+                <button class="btn-ghost" onclick="closeWizard()">✕ Close</button>
+            </div>
+
+            <div id="step_1" class="wizard-step">
+                <p class="mb-6">Which product needs attention?</p>
+                <div id="rentalList" class="flex-direction-column d-flex gap-4 mb-12">
+                    <!-- Loaded via JS -->
+                </div>
+                <div class="flex-end">
+                    <button class="btn btn-primary" onclick="nextStep(2)">Next: Describe Issue</button>
+                </div>
+            </div>
+
+            <div id="step_2" class="wizard-step" style="display:none;">
+                <p class="mb-6">What seems to be the problem?</p>
+                <div class="grid-3 gap-4 mb-8">
+                    <div class="radio-card issue-type" onclick="selectIssue('malfunction', this)">⚙️ Malfunction</div>
+                    <div class="radio-card issue-type" onclick="selectIssue('damage', this)">💥 Damage</div>
+                    <div class="radio-card issue-type" onclick="selectIssue('cosmetic', this)">🎨 Cosmetic</div>
+                    <div class="radio-card issue-type" onclick="selectIssue('replacement', this)">🔄 Replacement</div>
+                    <div class="radio-card issue-type" onclick="selectIssue('other', this)">❓ Other</div>
+                </div>
+                
+                <div class="mb-8">
+                    <textarea id="issueDesc" maxlength="1000" placeholder="Please describe the issue in detail..." style="height: 150px;" oninput="updateCharCount(this)"></textarea>
+                    <div id="charCount" class="text-right text-muted" style="font-size: 0.8rem;">1000 characters left</div>
+                </div>
+
+                <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                    <input type="file" id="fileInput" multiple accept="image/jpeg,image/png" style="display:none;" onchange="handleFiles(this.files)">
+                    <div style="font-size: 2rem;">📸</div>
+                    <p>Click or drag images here</p>
+                    <span class="text-muted" style="font-size: 0.75rem;">Max 3 photos (JPG/PNG), up to 5MB each</span>
+                </div>
+                <div class="preview-grid" id="imagePreviews"></div>
+
+                <div class="flex-between mt-12">
+                    <button class="btn btn-ghost" onclick="prevStep(1)">Back</button>
+                    <button class="btn btn-primary" onclick="nextStep(3)">Next: Confirm</button>
+                </div>
+            </div>
+
+            <div id="step_3" class="wizard-step" style="display:none;">
+                <h3 class="mb-6">Confirm Request</h3>
+                <div class="card p-6 mb-8 bg-surface-2" id="confirmSummary">
+                    <!-- Summary via JS -->
+                </div>
+                <p class="mb-8 text-muted">Estimated response time: <strong>Within 24 hours</strong>. Our technician will contact you to schedule a visit.</p>
+                
+                <div class="flex-between">
+                    <button class="btn btn-ghost" onclick="prevStep(2)">Back</button>
+                    <button class="btn btn-primary btn-lg" onclick="submitTicket()" id="submitBtn">Submit Ticket</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox" onclick="this.style.display='none'">
+        <img id="lightboxImg" src="" alt="">
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/toast.js"></script>
+    <script src="../js/loader.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/utils.js"></script>
+
+    <script>
+        let allTickets = [];
+        let currentTicketId = null;
+        let selectedRentalId = null;
+        let selectedIssueType = null;
+        let selectedFiles = [];
+
+        // Fetching Data
+        async function fetchTickets() {
+            try {
+                const res = await API.get('/maintenance');
+                allTickets = res.data.tickets;
+                renderTicketList();
+            } catch (err) {}
+        }
+
+        function renderTicketList() {
+            const list = document.getElementById('ticketList');
+            list.innerHTML = allTickets.map(t => {
+                const isUnread = localStorage.getItem(`ticket_read_${t._id}`) !== t.updatedAt;
+                return `
+                    <div class="ticket-item ${t._id === currentTicketId ? 'active' : ''}" onclick="loadTicketDetail('${t._id}')">
+                        ${isUnread ? '<div class="unread-dot"></div>' : ''}
+                        <div class="flex-between mb-2">
+                            <span style="font-family: var(--font-mono); font-weight: 700; font-size: 0.8rem;">#${t.ticketNumber}</span>
+                            <span class="text-muted" style="font-size: 0.7rem;">${new Date(t.createdAt).toLocaleDateString('en-IN', {day:'numeric', month:'short'})}</span>
+                        </div>
+                        <div class="font-bold" style="font-size: 0.9rem;">${t.product.name.substring(0, 25)}...</div>
+                        <div class="flex-start gap-2 mt-3">
+                            <span class="badge badge-outline" style="font-size: 0.65rem;">${t.issueType.toUpperCase()}</span>
+                            <span class="badge ${getStatusClass(t.status)}" style="font-size: 0.65rem;">${t.status.toUpperCase()}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getStatusClass(status) {
+            if (['submitted', 'under-review'].includes(status)) return 'badge-info';
+            if (['assigned', 'scheduled'].includes(status)) return 'badge-warning';
+            if (['resolved', 'closed'].includes(status)) return 'badge-success';
+            return 'badge-outline';
+        }
+
+        async function loadTicketDetail(id) {
+            currentTicketId = id;
+            localStorage.setItem(`ticket_read_${id}`, allTickets.find(t=>t._id===id).updatedAt);
+            renderTicketList();
+            
+            document.getElementById('detailEmpty').style.display = 'none';
+            const content = document.getElementById('detailContent');
+            content.innerHTML = '<div class="skeleton" style="height: 400px;"></div>';
+            content.style.display = 'block';
+
+            try {
+                const res = await API.get(`/maintenance/${id}`);
+                const t = res.data.ticket;
+                renderDetail(t);
+            } catch (err) {
+                Toast.error('Failed to load ticket details');
+            }
+        }
+
+        function renderDetail(t) {
+            const content = document.getElementById('detailContent');
+            content.innerHTML = `
+                <div class="animate-fade-in">
+                    <div class="flex-between mb-8">
+                        <div>
+                            <span style="font-family: var(--font-mono); font-weight: 700; color: var(--color-text-muted);">TICKET #${t.ticketNumber}</span>
+                            <h2 class="mt-2">Maintenance Request</h2>
+                        </div>
+                        <div class="badge ${getStatusClass(t.status)} btn-lg">${t.status.toUpperCase()}</div>
+                    </div>
+
+                    <div class="card p-6 mb-8 flex-start gap-6" style="border: 1px solid var(--color-border);">
+                        <img src="${t.product.images[0]}" style="width: 80px; height: 80px; object-fit: cover; border-radius: var(--radius-md);">
+                        <div>
+                            <div class="font-bold">${t.product.name}</div>
+                            <div class="text-muted" style="font-size: 0.875rem;">${t.product.brand} · Started ${new Date(t.rental.startDate).toLocaleDateString()}</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-10">
+                        <h4 class="mb-4">Description</h4>
+                        <div class="p-6 bg-surface-2 rounded text-secondary" style="white-space: pre-line;">${t.description}</div>
+                    </div>
+
+                    ${t.images.length > 0 ? `
+                        <div class="mb-10">
+                            <h4 class="mb-4">Images</h4>
+                            <div class="flex-start gap-4">
+                                ${t.images.map(img => `<img src="${img}" class="cursor-pointer rounded-lg" style="width: 100px; height: 100px; object-fit: cover;" onclick="openLightbox('${img}')">`).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <h4 class="mb-6">Tracking Timeline</h4>
+                    <div class="timeline">
+                        ${renderTimeline(t)}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderTimeline(t) {
+            const steps = [
+                { id: 'submitted', label: 'Ticket Submitted' },
+                { id: 'under-review', label: 'Under Review' },
+                { id: 'assigned', label: 'Technician Assigned' },
+                { id: 'scheduled', label: 'Visit Scheduled' },
+                { id: 'resolved', label: 'Resolved' },
+                { id: 'closed', label: 'Ticket Closed' }
+            ];
+
+            const currentIdx = steps.findIndex(s => s.id === t.status);
+            
+            return steps.map((step, idx) => {
+                const history = t.statusHistory.find(h => h.status === step.id);
+                const isCompleted = idx <= currentIdx;
+                const isActive = idx === currentIdx;
+
+                return `
+                    <div class="timeline-item ${isCompleted ? 'completed' : ''} ${isActive ? 'active' : ''}">
+                        <div class="timeline-marker"></div>
+                        <div class="font-bold" style="font-size: 0.9rem;">${step.label}</div>
+                        ${history ? `<div class="text-muted" style="font-size: 0.75rem;">${new Date(history.timestamp).toLocaleString()}</div>` : ''}
+                        ${step.id === 'assigned' && t.assignedTechnician.name ? `
+                            <div class="mt-2 p-3 bg-surface-2 rounded-lg" style="font-size: 0.8rem;">
+                                👤 <strong>${t.assignedTechnician.name}</strong><br>
+                                📞 ${t.assignedTechnician.phone}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Wizard Logic
+        async function openWizard() {
+            document.getElementById('wizard').style.display = 'block';
+            nextStep(1);
+            
+            // Load rentals
+            const rentalList = document.getElementById('rentalList');
+            rentalList.innerHTML = '<div class="skeleton" style="height: 100px;"></div>';
+            
+            try {
+                const res = await API.get('/rentals');
+                const rentals = res.data.rentals.filter(r => r.status === 'active' || r.status === 'extended');
+                rentalList.innerHTML = rentals.map(r => `
+                    <label class="radio-card p-4 flex-start gap-6 cursor-pointer">
+                        <input type="radio" name="rental" value="${r._id}" onchange="selectedRentalId='${r._id}'; selectedRentalName='${r.product.name}'">
+                        <img src="${r.product.images[0]}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+                        <div>
+                            <div class="font-bold" style="font-size: 0.9rem;">${r.product.name}</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">${r.rentalPlan.label}</div>
+                        </div>
+                    </label>
+                `).join('');
+            } catch (e) {}
+        }
+
+        function nextStep(n) {
+            if (n === 2 && !selectedRentalId) return Toast.warning('Please select a product');
+            if (n === 3) {
+                if (!selectedIssueType) return Toast.warning('Please select an issue type');
+                if (!document.getElementById('issueDesc').value.trim()) return Toast.warning('Please describe the issue');
+                populateConfirm();
+            }
+
+            document.querySelectorAll('.wizard-step').forEach(s => s.style.display = 'none');
+            document.getElementById(`step_${n}`).style.display = 'block';
+            document.getElementById('wizardTitle').innerText = n === 1 ? '1. Select Item' : (n === 2 ? '2. Describe Issue' : '3. Confirm');
+        }
+
+        function prevStep(n) {
+            nextStep(n);
+        }
+
+        function selectIssue(type, el) {
+            selectedIssueType = type;
+            document.querySelectorAll('.issue-type').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+
+        function updateCharCount(ta) {
+            const left = 1000 - ta.value.length;
+            const el = document.getElementById('charCount');
+            el.innerText = `${left} characters left`;
+            el.style.color = left < 100 ? 'var(--color-danger)' : 'var(--color-text-muted)';
+        }
+
+        function handleFiles(files) {
+            if (selectedFiles.length + files.length > 3) {
+                Toast.error('Maximum 3 images allowed');
+                return;
+            }
+
+            Array.from(files).forEach(file => {
+                if (file.size > 5 * 1024 * 1024) {
+                    Toast.error(`${file.name} is too large (>5MB)`);
+                    return;
+                }
+                selectedFiles.push(file);
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const preview = `
+                        <div class="preview-img">
+                            <img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
+                            <span class="remove-img" onclick="removeImage(${selectedFiles.length - 1})">✕</span>
+                        </div>
+                    `;
+                    document.getElementById('imagePreviews').insertAdjacentHTML('beforeend', preview);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function removeImage(idx) {
+            selectedFiles.splice(idx, 1);
+            const grid = document.getElementById('imagePreviews');
+            grid.innerHTML = '';
+            selectedFiles.forEach((file, i) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    grid.insertAdjacentHTML('beforeend', `
+                        <div class="preview-img">
+                            <img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
+                            <span class="remove-img" onclick="removeImage(${i})">✕</span>
+                        </div>
+                    `);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function populateConfirm() {
+            const desc = document.getElementById('issueDesc').value;
+            document.getElementById('confirmSummary').innerHTML = `
+                <div class="mb-4"><strong>Product:</strong> ${selectedRentalName}</div>
+                <div class="mb-4"><strong>Issue:</strong> ${selectedIssueType.toUpperCase()}</div>
+                <div><strong>Description:</strong> ${desc.substring(0, 100)}${desc.length > 100 ? '...' : ''}</div>
+                <div class="mt-4 text-muted"><strong>Images:</strong> ${selectedFiles.length} attached</div>
+            `;
+        }
+
+        async function submitTicket() {
+            const btn = document.getElementById('submitBtn');
+            btnLoader(btn);
+
+            const formData = new FormData();
+            formData.append('rentalId', selectedRentalId);
+            formData.append('issueType', selectedIssueType);
+            formData.append('description', document.getElementById('issueDesc').value);
+            selectedFiles.forEach(file => formData.append('images', file));
+
+            try {
+                const res = await API.post('/maintenance', formData);
+                const ticket = res.data.ticket;
+                
+                Toast.success('🔧 Ticket #' + ticket.ticketNumber + ' submitted successfully!');
+                closeWizard();
+                fetchTickets();
+                loadTicketDetail(ticket._id);
+            } catch (err) {
+                btnLoaderDone(btn, false);
+                Toast.error(err.message);
+            }
+        }
+
+        function closeWizard() {
+            document.getElementById('wizard').style.display = 'none';
+            selectedFiles = [];
+            selectedIssueType = null;
+            document.getElementById('imagePreviews').innerHTML = '';
+            document.getElementById('issueDesc').value = '';
+        }
+
+        function openLightbox(src) {
+            const lb = document.getElementById('lightbox');
+            document.getElementById('lightboxImg').src = src;
+            lb.style.display = 'flex';
+        }
+
+        // Status Polling
+        function startStatusPolling() {
+            setInterval(async () => {
+                if (document.hidden) return;
+                try {
+                    const res = await API.get('/maintenance');
+                    const newTickets = res.data.tickets;
+                    
+                    newTickets.forEach(nt => {
+                        const old = allTickets.find(t => t._id === nt._id);
+                        if (old && old.status !== nt.status) {
+                            Toast.info(`Ticket #${nt.ticketNumber} status updated to ${nt.status}`);
+                            if (currentTicketId === nt._id) loadTicketDetail(nt._id);
+                        }
+                    });
+                    allTickets = newTickets;
+                    renderTicketList();
+                } catch (e) {}
+            }, 30000);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = Auth.getStoredUser();
+            if (!user) { window.location.href = '/pages/login.html'; return; }
+            
+            // Init Sidebar
+            const sidebar = document.getElementById('sidebar');
+            sidebar.innerHTML = `
+                <div class="user-profile-summary">
+                    <div class="avatar-circle" id="userAvatar">${user.name.split(' ').map(n=>n[0]).join('').toUpperCase()}</div>
+                    <div style="font-weight: 700; font-size: 1.1rem;">${user.name}</div>
+                    <div style="font-size: 0.8125rem; opacity: 0.5;">${user.email}</div>
+                </div>
+                <nav class="nav-list">
+                    <a href="/pages/dashboard.html" class="nav-item">🏠 Dashboard</a>
+                    <a href="/pages/active-rentals.html" class="nav-item">🛋️ Active Rentals</a>
+                    <a href="/pages/rental-history.html" class="nav-item">📜 Rental History</a>
+                    <a href="/pages/maintenance.html" class="nav-item active">🛠️ Maintenance</a>
+                    <a href="/pages/profile.html" class="nav-item">⚙️ Profile Settings</a>
+                </nav>
+                <div style="padding: 0 var(--space-6) var(--space-6);">
+                    <button class="btn btn-outline" style="width: 100%; border-color: rgba(255,255,255,0.2); color: white;" onclick="Auth.logout()">Logout</button>
+                </div>
+            `;
+
+            // Drag and Drop
+            const dz = document.getElementById('dropZone');
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
+                dz.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); }, false);
+            });
+            dz.addEventListener('dragover', () => dz.classList.add('dragover'));
+            dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+            dz.addEventListener('drop', e => {
+                dz.classList.remove('dragover');
+                handleFiles(e.dataTransfer.files);
+            });
+
+            Auth.init();
+            fetchTickets();
+            startStatusPolling();
+        });
+    </script>
+</body>
+</html>
