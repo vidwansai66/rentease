@@ -28,6 +28,7 @@ exports.getStats = async (req, res, next) => {
             openTickets, 
             lowInventory, 
             recentOrders,
+            recentTickets,
             orderCounts
         ] = await Promise.all([
             User.countDocuments(),
@@ -44,6 +45,7 @@ exports.getStats = async (req, res, next) => {
             MaintenanceRequest.countDocuments({ status: { $nin: ['resolved', 'closed'] } }),
             Product.find({ availableUnits: { $lt: 3 } }).select('name availableUnits isAvailable').limit(5),
             Order.find().sort('-createdAt').limit(10).populate('user', 'name email'),
+            MaintenanceRequest.find().sort('-createdAt').limit(5).populate('user', 'name email').populate('product', 'name'),
             Order.aggregate([
                 { $group: { _id: '$orderStatus', count: { $sum: 1 } } }
             ])
@@ -73,6 +75,7 @@ exports.getStats = async (req, res, next) => {
             openTickets,
             lowInventory,
             recentOrders,
+            recentTickets,
             statusCounts
         });
     } catch (error) {

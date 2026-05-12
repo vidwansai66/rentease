@@ -508,7 +508,7 @@
             selectedFiles.forEach(file => formData.append('images', file));
 
             try {
-                const res = await API.post('/maintenance', formData);
+                const res = await API.post('/maintenance', formData, true);
                 const ticket = res.data.ticket;
                 
                 Toast.success('🔧 Ticket #' + ticket.ticketNumber + ' submitted successfully!');

@@ -190,7 +190,7 @@
             <div class="card p-8">
                 <div class="flex-between mb-8">
                     <h3>Recent Transactions</h3>
-                    <a href="#" class="btn btn-ghost btn-sm">View All Orders</a>
+                    <a href="/pages/admin/orders.html" class="btn btn-ghost btn-sm">View All Orders</a>
                 </div>
                 <table class="admin-table">
                     <thead>
@@ -204,6 +204,25 @@
                         </tr>
                     </thead>
                     <tbody id="ordersTable">
+                        <!-- Content via JS -->
+                    </tbody>
+                </table>
+
+                <div class="flex-between mb-8 mt-12">
+                    <h3>Maintenance Requests</h3>
+                    <a href="/pages/admin/maintenance.html" class="btn btn-ghost btn-sm">View All Tickets</a>
+                </div>
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Ticket #</th>
+                            <th>Product</th>
+                            <th>Issue</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="maintenanceTable">
                         <!-- Content via JS -->
                     </tbody>
                 </table>
@@ -287,6 +306,18 @@
                         <td><span class="badge badge-success" style="font-size: 0.65rem;">${o.paymentStatus.toUpperCase()}</span></td>
                         <td class="text-muted" style="font-size: 0.8rem;">${new Date(o.createdAt).toLocaleDateString()}</td>
                         <td><button class="btn btn-ghost btn-sm" onclick="window.location.href='/pages/admin/orders.html?id=${o._id}'">View</button></td>
+                    </tr>
+                `).join('');
+
+                // Build Maintenance Table
+                const mTable = document.getElementById('maintenanceTable');
+                mTable.innerHTML = stats.recentTickets.map(t => `
+                    <tr>
+                        <td class="font-bold">#${t.ticketNumber}</td>
+                        <td>${t.product?.name || 'Product Deleted'}</td>
+                        <td><span class="badge badge-outline" style="font-size: 0.65rem;">${t.issueType.toUpperCase()}</span></td>
+                        <td><span class="badge ${getStatusClass(t.status)}" style="font-size: 0.65rem;">${t.status.toUpperCase()}</span></td>
+                        <td><button class="btn btn-ghost btn-sm" onclick="window.location.href='/pages/admin/maintenance.html'">View</button></td>
                     </tr>
                 `).join('');
 
@@ -377,6 +408,11 @@
                 chartInstance = new ApexCharts(document.querySelector("#revenueChart"), options);
                 chartInstance.render();
             }
+        function getStatusClass(status) {
+            if (['submitted', 'under-review', 'pending'].includes(status)) return 'badge-info';
+            if (['assigned', 'scheduled', 'in-progress'].includes(status)) return 'badge-warning';
+            if (['resolved', 'closed'].includes(status)) return 'badge-success';
+            return 'badge-outline';
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
