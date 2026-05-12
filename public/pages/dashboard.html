@@ -165,6 +165,7 @@
         </div>
         <nav class="nav-list">
             <a href="/pages/dashboard.html" class="nav-item active">🏠 Dashboard</a>
+            <div id="adminLinkContainer"></div>
             <a href="/pages/active-rentals.html" class="nav-item">🛋️ Active Rentals</a>
             <a href="/pages/rental-history.html" class="nav-item">📜 Rental History</a>
             <a href="/pages/maintenance.html" class="nav-item">🛠️ Maintenance</a>
@@ -396,6 +397,11 @@
             document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
 
             if (user.role === 'admin') {
+                document.getElementById('adminLinkContainer').innerHTML = `
+                    <a href="/pages/admin/dashboard.html" class="nav-item" style="background: rgba(244, 166, 35, 0.1); color: var(--color-accent); font-weight: 700;">
+                        🔑 Switch to Admin View
+                    </a>
+                `;
                 Toast.info('Redirecting to Admin Portal...');
                 setTimeout(() => {
                     window.location.href = '/pages/admin/dashboard.html';
