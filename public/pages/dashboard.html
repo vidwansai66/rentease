@@ -395,6 +395,14 @@
             document.getElementById('userAvatar').innerText = user.name.split(' ').map(n=>n[0]).join('').toUpperCase();
             document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
 
+            if (user.role === 'admin') {
+                Toast.info('Redirecting to Admin Portal...');
+                setTimeout(() => {
+                    window.location.href = '/pages/admin/dashboard.html';
+                }, 1500);
+                return;
+            }
+
             Auth.init();
             fetchDashboard();
         });

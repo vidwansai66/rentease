@@ -42,7 +42,8 @@ const Auth = (() => {
             Toast.success('Welcome to RentEase!');
             
             setTimeout(() => {
-                window.location.href = '/pages/dashboard.html';
+                const user = res.data.user;
+                window.location.href = user.role === 'admin' ? '/pages/admin/dashboard.html' : '/pages/dashboard.html';
             }, 800);
         } catch (err) {
             btnLoaderDone(btn, false);
