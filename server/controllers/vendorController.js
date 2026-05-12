@@ -73,6 +73,7 @@ exports.getVendorStats = async (req, res) => {
             pendingApprovals,
             recentProducts: products.slice(0, 5),
             recentOrders: orders.slice(0, 5).map(o => ({
+                _id: o._id,
                 orderNumber: o.orderNumber,
                 createdAt: o.createdAt,
                 grandTotal: o.pricing.grandTotal,

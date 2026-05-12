@@ -448,6 +448,13 @@
             `;
             Auth.init();
             fetchOrders();
+
+            // Check for direct order ID in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const orderId = urlParams.get('id');
+            if (orderId) {
+                setTimeout(() => viewOrder(orderId), 1000); // Wait for fetch
+            }
         });
     </script>
 </body>

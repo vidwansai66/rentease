@@ -165,7 +165,7 @@
                 if (stats.recentOrders && stats.recentOrders.length > 0) {
                     salesContainer.className = 'flex-direction-column d-flex gap-4';
                     salesContainer.innerHTML = stats.recentOrders.map(o => `
-                        <div class="flex-between p-4 bg-surface-2 rounded animate-fade-in">
+                        <div class="flex-between p-4 bg-surface-2 rounded animate-fade-in" style="cursor: pointer;" onclick="window.location.href='/pages/vendor/orders.html?id=${o._id}'">
                             <div>
                                 <div class="font-bold">#${o.orderNumber.split('-').pop()}</div>
                                 <div class="text-muted small">${new Date(o.createdAt).toLocaleDateString()}</div>

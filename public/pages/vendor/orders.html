@@ -125,33 +125,45 @@
         </div>
     </main>
 
+    <div class="modal-backdrop" id="detailModalBackdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: none; align-items: center; justify-content: center;">
+        <div class="card p-8" style="width: 500px; max-height: 80vh; overflow-y: auto;">
+            <h3 class="mb-4">Order Details</h3>
+            <div id="orderDetailContent"></div>
+            <div class="flex-end mt-6">
+                <button class="btn btn-primary" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <script src="../../js/api.js"></script>
     <script src="../../js/toast.js"></script>
     <script src="../../js/loader.js"></script>
     <script src="../../js/auth.js"></script>
     <script>
+        let allOrders = [];
+
         async function fetchOrders() {
             try {
                 const res = await API.get('/vendor/orders');
-                const orders = res.data.orders;
+                allOrders = res.data.orders;
                 const body = document.getElementById('ordersBody');
                 
-                if (orders.length === 0) {
+                if (allOrders.length === 0) {
                     body.innerHTML = '<tr><td colspan="6" class="text-center py-20 text-muted">No orders found yet.</td></tr>';
                     return;
                 }
 
-                body.innerHTML = orders.map(o => `
+                body.innerHTML = allOrders.map(o => `
                     <tr>
                         <td>
-                            <div class="font-bold">#${o.orderNumber}</div>
+                            <div class="font-bold">#${o.orderNumber.split('-').pop()}</div>
                             <div class="text-muted small">${new Date(o.createdAt).toLocaleDateString()}</div>
                         </td>
                         <td>
                             <div class="flex-start gap-4">
-                                <img src="${o.items[0].product.images[0]}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
+                                <img src="${o.items[0].product?.images?.[0] || '../../images/placeholder.png'}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
                                 <div>
-                                    <div class="font-medium">${o.items[0].product.name}</div>
+                                    <div class="font-medium">${o.items[0].product?.name || 'Product Deleted'}</div>
                                     <div class="text-muted small">${o.items.length > 1 ? `+ ${o.items.length - 1} more items` : ''}</div>
                                 </div>
                             </div>
@@ -159,16 +171,60 @@
                         <td>${o.user.name}<br><span class="text-muted small">${o.user.email}</span></td>
                         <td class="font-bold text-primary">₹${o.vendorTotal.toLocaleString()}</td>
                         <td>
-                            <span class="status-badge" style="background: #E0E7FF; color: #3730A3;">${o.orderStatus}</span>
+                            <span class="status-badge" style="background: #E0E7FF; color: #3730A3; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem;">${o.orderStatus.toUpperCase()}</span>
                         </td>
                         <td>
                             <button class="btn btn-ghost btn-sm" onclick="viewOrder('${o._id}')">Details</button>
                         </td>
                     </tr>
                 `).join('');
+
+                // Check for ID in URL after load
+                const urlParams = new URLSearchParams(window.location.search);
+                const orderId = urlParams.get('id');
+                if (orderId) viewOrder(orderId);
+
             } catch (err) {
                 Toast.error('Failed to load orders');
             }
+        }
+
+        function viewOrder(id) {
+            const order = allOrders.find(o => o._id === id);
+            if (!order) return;
+
+            const content = document.getElementById('orderDetailContent');
+            content.innerHTML = `
+                <div class="mb-4">
+                    <strong>Order Number:</strong> #${order.orderNumber}<br>
+                    <strong>Status:</strong> ${order.orderStatus.toUpperCase()}<br>
+                    <strong>Date:</strong> ${new Date(order.createdAt).toLocaleString()}
+                </div>
+                <div class="mb-4">
+                    <strong>Customer:</strong> ${order.user.name}<br>
+                    <strong>Email:</strong> ${order.user.email}
+                </div>
+                <div class="mb-4">
+                    <strong>Items:</strong>
+                    <div class="mt-2">
+                        ${order.items.map(item => `
+                            <div class="flex-between mb-2">
+                                <span>${item.product?.name || 'Deleted Product'} x ${item.quantity}</span>
+                                <span>₹${(item.selectedPlan?.totalPrice || 0).toLocaleString()}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                <div class="border-top pt-2 flex-between">
+                    <strong>Total Revenue:</strong>
+                    <strong class="text-primary">₹${order.vendorTotal.toLocaleString()}</strong>
+                </div>
+            `;
+            document.getElementById('detailModalBackdrop').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('detailModalBackdrop').style.display = 'none';
         }
 
         document.addEventListener('DOMContentLoaded', () => {

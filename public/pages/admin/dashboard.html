@@ -286,7 +286,7 @@
                         <td class="font-bold">₹${o.pricing.grandTotal.toLocaleString()}</td>
                         <td><span class="badge badge-success" style="font-size: 0.65rem;">${o.paymentStatus.toUpperCase()}</span></td>
                         <td class="text-muted" style="font-size: 0.8rem;">${new Date(o.createdAt).toLocaleDateString()}</td>
-                        <td><button class="btn btn-ghost btn-sm">View</button></td>
+                        <td><button class="btn btn-ghost btn-sm" onclick="window.location.href='/pages/admin/orders.html?id=${o._id}'">View</button></td>
                     </tr>
                 `).join('');
 
