@@ -57,7 +57,7 @@ const requiredFiles = [
     'public/js/toast.js',
     'public/js/loader.js',
     'public/js/utils.js',
-    'public/pages/index.html',
+    'public/index.html',
     'public/pages/products.html',
     'public/pages/product-detail.html',
     'public/pages/cart.html',

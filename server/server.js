@@ -19,11 +19,6 @@ const vendorRoutes = require('./routes/vendorRoutes');
 // Initialize app
 const app = express();
 
-// Connect to Database
-connectDB().then(() => {
-    ensureIndexes();
-});
-
 // Middleware
 app.use(cors({
     origin: process.env.CLIENT_URL || 'http://localhost:8000',
@@ -32,6 +27,47 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Static folder
+app.use(express.static(path.join(__dirname, '../public')));
+
+// API Routes
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/products', productRoutes);
+app.use('/api/v1/rentals', rentalRoutes);
+app.use('/api/v1/orders', orderRoutes);
+app.use('/api/v1/maintenance', maintenanceRoutes);
+app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/vendor', vendorRoutes);
+
+// 404 Handler
+app.use((req, res, next) => {
+    res.status(404).json({
+        success: false,
+        message: "API Route not found"
+    });
+});
+
+// Error Middleware
+const errorHandler = require('./middleware/errorHandler');
+app.use(errorHandler);
+
+// Database Connection & Server Start
+const PORT = process.env.PORT || 8000;
+
+connectDB().then(() => {
+    ensureIndexes();
+    app.listen(PORT, () => {
+        console.log(`🚀 RentEase Server running on port ${PORT}`);
+    });
+});
+
+// Process handlers
+process.on('unhandledRejection', (err) => {
+    console.error(`Unhandled Rejection: ${err?.message || err}`);
+    process.exit(1);
+});
 
 async function ensureIndexes() {
     try {
@@ -70,46 +106,3 @@ async function ensureIndexes() {
         console.error('Index creation warning:', e.message);
     }
 }
-
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cors());
-app.use(cookieParser());
-
-// Static folder
-app.use(express.static(path.join(__dirname, '../public')));
-
-// API Routes
-app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/products', productRoutes);
-app.use('/api/v1/rentals', rentalRoutes);
-app.use('/api/v1/orders', orderRoutes);
-app.use('/api/v1/maintenance', maintenanceRoutes);
-app.use('/api/v1/admin', adminRoutes);
-app.use('/api/v1/users', userRoutes);
-app.use('/api/v1/vendor', vendorRoutes);
-
-const errorHandler = require('./middleware/errorHandler');
-
-// 404 Handler
-app.use((req, res, next) => {
-    res.status(404).json({
-        success: false,
-        message: "API Route not found"
-    });
-});
-
-// Error Middleware
-app.use(errorHandler);
-
-const PORT = process.env.PORT || 8000;
-
-const server = app.listen(PORT, () => {
-    console.log(`🚀 RentEase Server running on port ${PORT}`);
-});
-
-process.on('unhandledRejection', (err, promise) => {
-    console.log(`Error: ${err.message}`);
-    server.close(() => process.exit(1));
-});
