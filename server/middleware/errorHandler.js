@@ -1,43 +1,47 @@
 const sendResponse = require('../utils/sendResponse');
 
 const errorHandler = (err, req, res, next) => {
-    let error = { ...err };
-    error.message = err.message;
-
     // Log to console for dev
-    if (process.env.NODE_ENV === 'development') {
-        console.error(err);
-    }
+    console.error('Error Handler Caught:', err);
+
+    let statusCode = err.statusCode || 500;
+    let message = err.message || 'Internal Server Error';
 
     // Mongoose bad ObjectId
     if (err.name === 'CastError') {
-        const message = `Resource not found`;
-        return sendResponse(res, 404, false, message);
+        statusCode = 404;
+        message = 'Resource not found';
     }
 
     // Mongoose duplicate key
     if (err.code === 11000) {
-        const message = 'Duplicate field value entered';
-        return sendResponse(res, 400, false, message);
+        statusCode = 400;
+        message = 'Duplicate field value entered';
     }
 
     // Mongoose validation error
     if (err.name === 'ValidationError') {
-        const message = Object.values(err.errors).map(val => val.message).join(', ');
-        return sendResponse(res, 400, false, message);
+        statusCode = 400;
+        message = Object.values(err.errors).map(val => val.message).join(', ');
     }
 
     // JWT Errors
     if (err.name === 'JsonWebTokenError') {
-        return sendResponse(res, 401, false, 'Invalid token');
+        statusCode = 401;
+        message = 'Invalid token';
     }
     
     if (err.name === 'TokenExpiredError') {
-        return sendResponse(res, 401, false, 'Token expired');
+        statusCode = 401;
+        message = 'Token expired';
     }
 
-    sendResponse(res, error.statusCode || 500, false, error.message || 'Server Error', {
-        stack: process.env.NODE_ENV === 'development' ? err.stack : null
+    // Ensure we are sending a JSON response
+    res.status(statusCode).json({
+        success: false,
+        message: message,
+        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+        timestamp: new Date().toISOString()
     });
 };
 

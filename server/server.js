@@ -41,6 +41,11 @@ app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/vendor', vendorRoutes);
 
+// Health check route
+app.get('/api/v1/health', (req, res) => {
+    res.status(200).json({ status: 'ok', environment: process.env.NODE_ENV });
+});
+
 // 404 Handler
 app.use((req, res, next) => {
     res.status(404).json({
@@ -53,21 +58,28 @@ app.use((req, res, next) => {
 const errorHandler = require('./middleware/errorHandler');
 app.use(errorHandler);
 
-// Database Connection & Server Start
-const PORT = process.env.PORT || 8000;
-
+// Database Connection
 connectDB().then(() => {
-    ensureIndexes();
-    app.listen(PORT, () => {
-        console.log(`🚀 RentEase Server running on port ${PORT}`);
-    });
+    if (process.env.NODE_ENV === 'development') {
+        ensureIndexes();
+    }
 });
 
 // Process handlers
 process.on('unhandledRejection', (err) => {
     console.error(`Unhandled Rejection: ${err?.message || err}`);
-    process.exit(1);
 });
+
+// Export for Vercel
+module.exports = app;
+
+// Local development start
+const PORT = process.env.PORT || 8000;
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`🚀 RentEase Server running on port ${PORT}`);
+    });
+}
 
 async function ensureIndexes() {
     try {
