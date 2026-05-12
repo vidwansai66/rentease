@@ -10,7 +10,17 @@ const {
     adminApproveProduct,
     adminGetOrders,
     adminGetOrderById,
-    adminUpdateOrderStatus
+    adminUpdateOrderStatus,
+    adminGetUsers,
+    adminUpdateUserRole,
+    adminDeleteUser,
+    adminGetMaintenanceRequests,
+    adminUpdateMaintenanceStatus,
+    adminGetSettings,
+    adminUpdateSettings,
+    adminCreateCategory,
+    adminUpdateCategory,
+    adminDeleteCategory
 } = require('../controllers/adminController');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 const { uploadMultiple } = require('../middleware/uploadMiddleware');
@@ -36,7 +46,22 @@ router.get('/orders', adminGetOrders);
 router.get('/orders/:id', adminGetOrderById);
 router.put('/orders/:id/status', adminUpdateOrderStatus);
 
-// Stubs for future management modules
-router.get('/maintenance', (req, res) => res.json({ message: 'Maintenance stub' }));
+// User Management
+router.get('/users', adminGetUsers);
+router.put('/users/:id/role', adminUpdateUserRole);
+router.delete('/users/:id', adminDeleteUser);
+
+// Maintenance Management
+router.get('/maintenance', adminGetMaintenanceRequests);
+router.put('/maintenance/:id/status', adminUpdateMaintenanceStatus);
+
+// Platform Settings
+router.get('/settings', adminGetSettings);
+router.put('/settings', adminUpdateSettings);
+
+// Category Management
+router.post('/categories', adminCreateCategory);
+router.put('/categories/:id', adminUpdateCategory);
+router.delete('/categories/:id', adminDeleteCategory);
 
 module.exports = router;

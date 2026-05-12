@@ -3,6 +3,8 @@ const User = require('../models/User');
 const Rental = require('../models/Rental');
 const Product = require('../models/Product');
 const MaintenanceRequest = require('../models/MaintenanceRequest');
+const PlatformSetting = require('../models/PlatformSetting');
+const Category = require('../models/Category');
 const sendResponse = require('../utils/sendResponse');
 
 // @desc    Get admin dashboard stats
@@ -109,12 +111,35 @@ exports.getRevenueChart = async (req, res, next) => {
 
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         
-        const chartData = data.map(d => ({
-            month: monthNames[d._id.month - 1],
-            year: d._id.year,
-            revenue: d.revenue,
-            orders: d.orders
-        }));
+        // Create a map of existing data
+        const dataMap = {};
+        data.forEach(d => {
+            dataMap[`${d._id.year}-${d._id.month}`] = {
+                revenue: d.revenue,
+                orders: d.orders
+            };
+        });
+
+        // Fill in all 12 months
+        const chartData = [];
+        let current = new Date(twelveMonthsAgo);
+        const now = new Date();
+
+        // Use a loop to get exactly 12 months including the current one
+        for (let i = 0; i < 12; i++) {
+            const year = current.getFullYear();
+            const month = current.getMonth() + 1;
+            const key = `${year}-${month}`;
+            
+            chartData.push({
+                month: monthNames[current.getMonth()],
+                year: year,
+                revenue: dataMap[key]?.revenue || 0,
+                orders: dataMap[key]?.orders || 0
+            });
+
+            current.setMonth(current.getMonth() + 1);
+        }
 
         sendResponse(res, 200, true, 'Revenue chart data fetched', { chartData });
     } catch (error) {
@@ -417,6 +442,192 @@ exports.adminApproveProduct = async (req, res, next) => {
         if (!product) return sendResponse(res, 404, false, 'Product not found');
         
         sendResponse(res, 200, true, 'Product approved and live', { product });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Get all users for admin
+// @route   GET /api/v1/admin/users
+// @access  Private/Admin
+exports.adminGetUsers = async (req, res, next) => {
+    try {
+        const { role, search, page = 1, limit = 20 } = req.query;
+        let query = {};
+        
+        if (role) query.role = role;
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const skip = (page - 1) * limit;
+        const [users, total] = await Promise.all([
+            User.find(query).select('-password').sort('-createdAt').skip(skip).limit(+limit),
+            User.countDocuments(query)
+        ]);
+
+        sendResponse(res, 200, true, 'Users fetched', { 
+            users, 
+            totalCount: total, 
+            totalPages: Math.ceil(total / limit) 
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Update user role
+// @route   PUT /api/v1/admin/users/:id/role
+// @access  Private/Admin
+exports.adminUpdateUserRole = async (req, res, next) => {
+    try {
+        const { role } = req.body;
+        if (!['customer', 'vendor', 'admin'].includes(role)) {
+            return sendResponse(res, 400, false, 'Invalid role');
+        }
+
+        const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true }).select('-password');
+        if (!user) return sendResponse(res, 404, false, 'User not found');
+
+        sendResponse(res, 200, true, `User role updated to ${role}`, { user });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Delete user
+// @route   DELETE /api/v1/admin/users/:id
+// @access  Private/Admin
+exports.adminDeleteUser = async (req, res, next) => {
+    try {
+        const user = await User.findByIdAndDelete(req.params.id);
+        if (!user) return sendResponse(res, 404, false, 'User not found');
+        sendResponse(res, 200, true, 'User deleted successfully');
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Get all maintenance requests
+// @route   GET /api/v1/admin/maintenance
+// @access  Private/Admin
+exports.adminGetMaintenanceRequests = async (req, res, next) => {
+    try {
+        const { status, page = 1, limit = 20 } = req.query;
+        let query = {};
+        if (status) query.status = status;
+
+        const skip = (page - 1) * limit;
+        const [requests, total] = await Promise.all([
+            MaintenanceRequest.find(query)
+                .populate('user', 'name email phone')
+                .populate('product', 'name images')
+                .sort('-createdAt')
+                .skip(skip)
+                .limit(+limit),
+            MaintenanceRequest.countDocuments(query)
+        ]);
+
+        sendResponse(res, 200, true, 'Maintenance requests fetched', { 
+            requests, 
+            totalCount: total, 
+            totalPages: Math.ceil(total / limit) 
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Update maintenance request status
+// @route   PUT /api/v1/admin/maintenance/:id/status
+// @access  Private/Admin
+exports.adminUpdateMaintenanceStatus = async (req, res, next) => {
+    try {
+        const { status, adminNotes } = req.body;
+        const request = await MaintenanceRequest.findByIdAndUpdate(
+            req.params.id, 
+            { status, adminNotes, resolvedAt: status === 'resolved' ? new Date() : undefined }, 
+            { new: true }
+        );
+
+        if (!request) return sendResponse(res, 404, false, 'Request not found');
+        sendResponse(res, 200, true, 'Maintenance status updated', { request });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Get platform settings
+// @route   GET /api/v1/admin/settings
+// @access  Private/Admin
+exports.adminGetSettings = async (req, res, next) => {
+    try {
+        let settings = await PlatformSetting.findOne();
+        if (!settings) {
+            settings = await PlatformSetting.create({});
+        }
+        sendResponse(res, 200, true, 'Platform settings fetched', { settings });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Update platform settings
+// @route   PUT /api/v1/admin/settings
+// @access  Private/Admin
+exports.adminUpdateSettings = async (req, res, next) => {
+    try {
+        let settings = await PlatformSetting.findOne();
+        if (!settings) {
+            settings = new PlatformSetting(req.body);
+        } else {
+            Object.assign(settings, req.body);
+        }
+        await settings.save();
+        sendResponse(res, 200, true, 'Platform settings updated', { settings });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Create new category
+// @route   POST /api/v1/admin/categories
+// @access  Private/Admin
+exports.adminCreateCategory = async (req, res, next) => {
+    try {
+        const { name, description, icon } = req.body;
+        const slug = name.toLowerCase().replace(/ /g, '-');
+        const category = await Category.create({ name, description, icon, slug });
+        sendResponse(res, 201, true, 'Category created', { category });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Update category
+// @route   PUT /api/v1/admin/categories/:id
+// @access  Private/Admin
+exports.adminUpdateCategory = async (req, res, next) => {
+    try {
+        const category = await Category.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        if (!category) return sendResponse(res, 404, false, 'Category not found');
+        sendResponse(res, 200, true, 'Category updated', { category });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Delete category
+// @route   DELETE /api/v1/admin/categories/:id
+// @access  Private/Admin
+exports.adminDeleteCategory = async (req, res, next) => {
+    try {
+        const category = await Category.findByIdAndDelete(req.params.id);
+        if (!category) return sendResponse(res, 404, false, 'Category not found');
+        sendResponse(res, 200, true, 'Category deleted');
     } catch (error) {
         next(error);
     }

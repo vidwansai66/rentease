@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maintenance Management | RentEase Admin</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="../../css/variables.css">
+    <link rel="stylesheet" href="../../css/reset.css">
+    <link rel="stylesheet" href="../../css/global.css">
+    <link rel="stylesheet" href="../../css/components.css">
+    <link rel="stylesheet" href="../../css/animations.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <script src="../../js/admin-guard.js"></script>
+
+    <style>
+        body { background: var(--color-bg); display: flex; min-height: 100vh; }
+        .admin-sidebar { width: var(--sidebar-width); background: #0F172A; display: flex; flex-direction: column; position: fixed; height: 100vh; z-index: var(--z-sticky); color: white; padding: var(--space-8) 0; }
+        .admin-logo { padding: 0 var(--space-8) var(--space-8); border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: var(--space-8); display: flex; align-items: center; gap: 12px; font-family: var(--font-display); }
+        .admin-badge { background: var(--color-accent); color: #0F172A; font-size: 0.65rem; padding: 2px 8px; border-radius: var(--radius-sm); font-weight: 800; }
+        .nav-list { list-style: none; flex-grow: 1; padding: 0 var(--space-4); }
+        .nav-item { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-4) var(--space-6); color: rgba(255,255,255,0.6); border-radius: var(--radius-md); transition: all var(--transition-fast); margin-bottom: var(--space-1); font-weight: 500; text-decoration: none; }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-item.active { background: rgba(255,255,255,0.1); color: var(--color-accent); font-weight: 700; border-left: 4px solid var(--color-accent); }
+        .admin-main { margin-left: var(--sidebar-width); flex-grow: 1; padding: var(--space-12); max-width: 1400px; }
+
+        .request-card { background: white; border-radius: var(--radius-lg); border: 1px solid var(--color-border); margin-bottom: var(--space-6); padding: var(--space-6); transition: all var(--transition-base); }
+        .request-card:hover { border-color: var(--color-primary); box-shadow: var(--shadow-md); }
+        
+        .status-pill { padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+        .status-pending { background: #fee2e2; color: #ef4444; }
+        .status-in-progress { background: #fef3c7; color: #d97706; }
+        .status-resolved { background: #dcfce7; color: #16a34a; }
+
+        .product-mini-img { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; }
+
+        @media (max-width: 1024px) {
+            .admin-main { margin-left: 0; }
+            .admin-sidebar { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <aside class="admin-sidebar">
+        <div class="admin-logo">
+            <span>RentEase</span>
+            <span class="admin-badge">ADMIN</span>
+        </div>
+        <nav class="nav-list">
+            <a href="/pages/admin/dashboard.html" class="nav-item">📊 Dashboard</a>
+            <a href="/pages/admin/products.html" class="nav-item">🪑 Products</a>
+            <a href="/pages/admin/orders.html" class="nav-item">📦 Orders</a>
+            <a href="/pages/profile.html" class="nav-item">👤 My Profile</a>
+            <a href="/pages/admin/users.html" class="nav-item">👥 Users</a>
+            <a href="/pages/admin/maintenance.html" class="nav-item active">🛠️ Maintenance</a>
+            <a href="/pages/admin/settings.html" class="nav-item">⚙️ Settings</a>
+        </nav>
+        <div style="padding: var(--space-6);">
+            <button class="btn btn-outline w-100" style="width: 100%; color: white; border-color: rgba(255,255,255,0.2);" onclick="Auth.logout()">Logout</button>
+        </div>
+    </aside>
+
+    <main class="admin-main">
+        <div class="flex-between mb-10">
+            <div>
+                <h1 style="font-family: var(--font-display);">Maintenance Requests</h1>
+                <p class="text-muted">Handle product repair and service tickets</p>
+            </div>
+            <div class="flex-start gap-4">
+                <select id="statusFilter" class="form-control" style="width: 200px;" onchange="fetchRequests()">
+                    <option value="">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="resolved">Resolved</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="requestsContainer">
+            <!-- Loaded via JS -->
+        </div>
+        
+        <div class="flex-center mt-8 gap-4" id="pagination"></div>
+    </main>
+
+    <script src="../../js/api.js"></script>
+    <script src="../../js/toast.js"></script>
+    <script src="../../js/loader.js"></script>
+    <script src="../../js/auth.js"></script>
+
+    <script>
+        let currentPage = 1;
+
+        async function fetchRequests() {
+            try {
+                const status = document.getElementById('statusFilter').value;
+                const res = await API.get(`/admin/maintenance?page=${currentPage}&status=${status}`);
+                const { requests, totalPages } = res.data;
+
+                const container = document.getElementById('requestsContainer');
+                if (requests.length === 0) {
+                    container.innerHTML = '<div class="card p-12 text-center text-muted">No maintenance requests found</div>';
+                    return;
+                }
+
+                container.innerHTML = requests.map(req => `
+                    <div class="request-card">
+                        <div class="flex-between mb-4">
+                            <div class="flex-start gap-4">
+                                <img src="${req.product?.images[0] || '../../images/placeholder.png'}" class="product-mini-img">
+                                <div>
+                                    <div class="font-bold">${req.product?.name || 'Unknown Product'}</div>
+                                    <div class="text-muted" style="font-size: 0.8rem;">Ticket ID: ${req._id}</div>
+                                </div>
+                            </div>
+                            <span class="status-pill status-${req.status}">${req.status.replace('-', ' ')}</span>
+                        </div>
+                        
+                        <div class="grid-2 gap-8 mb-6">
+                            <div>
+                                <h4 class="mb-2" style="font-size: 0.9rem;">Customer Info</h4>
+                                <div style="font-size: 0.85rem;"><strong>${req.user?.name}</strong></div>
+                                <div class="text-muted" style="font-size: 0.85rem;">${req.user?.email}</div>
+                                <div class="text-muted" style="font-size: 0.85rem;">${req.user?.phone}</div>
+                            </div>
+                            <div>
+                                <h4 class="mb-2" style="font-size: 0.9rem;">Issue Description</h4>
+                                <p style="font-size: 0.85rem;">${req.description}</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-surface-2 p-4 rounded mb-4">
+                            <label class="font-bold d-block mb-2" style="font-size: 0.8rem;">Admin Notes</label>
+                            <textarea class="form-control w-100" id="notes-${req._id}" placeholder="Add notes here..." style="min-height: 80px;">${req.adminNotes || ''}</textarea>
+                        </div>
+
+                        <div class="flex-between">
+                            <div class="text-muted" style="font-size: 0.75rem;">Created: ${new Date(req.createdAt).toLocaleString()}</div>
+                            <div class="flex-start gap-2">
+                                <select class="form-control form-control-sm" style="width: 150px;" id="status-${req._id}">
+                                    <option value="pending" ${req.status === 'pending' ? 'selected' : ''}>Pending</option>
+                                    <option value="in-progress" ${req.status === 'in-progress' ? 'selected' : ''}>In Progress</option>
+                                    <option value="resolved" ${req.status === 'resolved' ? 'selected' : ''}>Resolved</option>
+                                </select>
+                                <button class="btn btn-primary btn-sm px-6" onclick="updateStatus('${req._id}')">Update Ticket</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                renderPagination(totalPages);
+            } catch (err) {
+                Toast.error('Failed to load requests');
+            }
+        }
+
+        async function updateStatus(id) {
+            try {
+                const status = document.getElementById(`status-${id}`).value;
+                const adminNotes = document.getElementById(`notes-${id}`).value;
+                
+                await API.put(`/admin/maintenance/${id}/status`, { status, adminNotes });
+                Toast.success('Maintenance ticket updated');
+                fetchRequests();
+            } catch (err) {
+                Toast.error('Failed to update ticket');
+            }
+        }
+
+        function renderPagination(totalPages) {
+            const container = document.getElementById('pagination');
+            let html = '';
+            for (let i = 1; i <= totalPages; i++) {
+                html += `<button class="btn ${i === currentPage ? 'btn-primary' : 'btn-ghost'} btn-sm" onclick="goToPage(${i})">${i}</button>`;
+            }
+            container.innerHTML = html;
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            fetchRequests();
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await Auth.init();
+            fetchRequests();
+        });
+    </script>
+</body>
+</html>

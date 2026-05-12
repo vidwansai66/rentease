@@ -40,34 +40,49 @@ exports.registerVendor = async (req, res) => {
 // @desc    Get vendor stats
 // @route   GET /api/v1/vendor/stats
 exports.getVendorStats = async (req, res) => {
-    const products = await Product.find({ vendor: req.user._id });
-    const productIds = products.map(p => p._id);
+    try {
+        const products = await Product.find({ vendor: req.user._id });
+        const productIds = products.map(p => p._id);
 
-    // Get orders containing vendor's products
-    const orders = await Order.find({ 'items.product': { $in: productIds } });
-    
-    // Calculate total revenue from these orders (only vendor's portion)
-    let totalRevenue = 0;
-    orders.forEach(order => {
-        order.items.forEach(item => {
-            if (productIds.some(id => id.equals(item.product))) {
-                totalRevenue += item.price * item.quantity;
-            }
+        // Get orders containing vendor's products
+        const orders = await Order.find({ 'items.product': { $in: productIds } });
+        
+        // Calculate total revenue from these orders (only vendor's portion)
+        let totalRevenue = 0;
+        orders.forEach(order => {
+            order.items.forEach(item => {
+                if (productIds.some(id => id.equals(item.product))) {
+                    // Use totalPrice from the selected plan
+                    totalRevenue += (item.selectedPlan?.totalPrice || 0) * (item.quantity || 1);
+                }
+            });
         });
-    });
 
-    const activeRentals = await Rental.countDocuments({ 
-        product: { $in: productIds },
-        status: 'active'
-    });
+        const activeRentals = await Rental.countDocuments({ 
+            product: { $in: productIds },
+            status: 'active'
+        });
 
-    return sendResponse(res, 200, true, 'Vendor stats', {
-        totalProducts: products.length,
-        totalOrders: orders.length,
-        totalRevenue,
-        activeRentals,
-        recentProducts: products.slice(0, 5)
-    });
+        const pendingApprovals = products.filter(p => !p.isApproved).length;
+
+        return sendResponse(res, 200, true, 'Vendor stats', {
+            totalProducts: products.length,
+            totalOrders: orders.length,
+            totalRevenue,
+            activeRentals,
+            pendingApprovals,
+            recentProducts: products.slice(0, 5),
+            recentOrders: orders.slice(0, 5).map(o => ({
+                orderNumber: o.orderNumber,
+                createdAt: o.createdAt,
+                grandTotal: o.pricing.grandTotal,
+                orderStatus: o.orderStatus
+            }))
+        });
+    } catch (error) {
+        console.error('Vendor Stats Error:', error);
+        return sendResponse(res, 500, false, 'Failed to fetch vendor stats');
+    }
 };
 
 // @desc    Get vendor products
@@ -152,7 +167,8 @@ exports.getVendorOrders = async (req, res) => {
         const vendorItems = order.items.filter(item => 
             productIds.some(id => id.equals(item.product._id))
         );
-        const vendorTotal = vendorItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+        const vendorTotal = vendorItems.reduce((acc, item) => 
+            acc + ((item.selectedPlan?.totalPrice || 0) * (item.quantity || 1)), 0);
         
         return {
             _id: order._id,

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Platform Settings | RentEase Admin</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="../../css/variables.css">
+    <link rel="stylesheet" href="../../css/reset.css">
+    <link rel="stylesheet" href="../../css/global.css">
+    <link rel="stylesheet" href="../../css/components.css">
+    <link rel="stylesheet" href="../../css/animations.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <script src="../../js/admin-guard.js"></script>
+
+    <style>
+        body { background: var(--color-bg); display: flex; min-height: 100vh; }
+        .admin-sidebar { width: var(--sidebar-width); background: #0F172A; display: flex; flex-direction: column; position: fixed; height: 100vh; z-index: var(--z-sticky); color: white; padding: var(--space-8) 0; }
+        .admin-logo { padding: 0 var(--space-8) var(--space-8); border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: var(--space-8); display: flex; align-items: center; gap: 12px; font-family: var(--font-display); }
+        .admin-badge { background: var(--color-accent); color: #0F172A; font-size: 0.65rem; padding: 2px 8px; border-radius: var(--radius-sm); font-weight: 800; }
+        .nav-list { list-style: none; flex-grow: 1; padding: 0 var(--space-4); }
+        .nav-item { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-4) var(--space-6); color: rgba(255,255,255,0.6); border-radius: var(--radius-md); transition: all var(--transition-fast); margin-bottom: var(--space-1); font-weight: 500; text-decoration: none; }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-item.active { background: rgba(255,255,255,0.1); color: var(--color-accent); font-weight: 700; border-left: 4px solid var(--color-accent); }
+        .admin-main { margin-left: var(--sidebar-width); flex-grow: 1; padding: var(--space-12); max-width: 1400px; }
+
+        .settings-grid { display: grid; grid-template-columns: 250px 1fr; gap: var(--space-12); }
+        .settings-nav { display: flex; flex-direction: column; gap: 4px; }
+        .settings-nav-item { padding: 12px 16px; border-radius: 8px; color: var(--color-text-muted); cursor: pointer; transition: all 0.2s; font-weight: 500; }
+        .settings-nav-item:hover { background: var(--color-surface-2); color: var(--color-primary); }
+        .settings-nav-item.active { background: var(--color-primary-light); color: var(--color-primary); }
+
+        .tag-input { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px; border: 1px solid var(--color-border); border-radius: 8px; background: white; }
+        .tag { background: var(--color-primary-light); color: var(--color-primary); padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; display: flex; align-items: center; gap: 6px; }
+        .tag span { cursor: pointer; font-weight: bold; }
+
+        @media (max-width: 1024px) {
+            .admin-main { margin-left: 0; }
+            .admin-sidebar { display: none; }
+            .settings-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <aside class="admin-sidebar">
+        <div class="admin-logo">
+            <span>RentEase</span>
+            <span class="admin-badge">ADMIN</span>
+        </div>
+        <nav class="nav-list">
+            <a href="/pages/admin/dashboard.html" class="nav-item">📊 Dashboard</a>
+            <a href="/pages/admin/products.html" class="nav-item">🪑 Products</a>
+            <a href="/pages/admin/orders.html" class="nav-item">📦 Orders</a>
+            <a href="/pages/profile.html" class="nav-item">👤 My Profile</a>
+            <a href="/pages/admin/users.html" class="nav-item">👥 Users</a>
+            <a href="/pages/admin/maintenance.html" class="nav-item">🛠️ Maintenance</a>
+            <a href="/pages/admin/settings.html" class="nav-item active">⚙️ Settings</a>
+        </nav>
+        <div style="padding: var(--space-6);">
+            <button class="btn btn-outline w-100" style="width: 100%; color: white; border-color: rgba(255,255,255,0.2);" onclick="Auth.logout()">Logout</button>
+        </div>
+    </aside>
+
+    <main class="admin-main">
+        <div class="flex-between mb-10">
+            <div>
+                <h1 style="font-family: var(--font-display);">Platform Settings</h1>
+                <p class="text-muted">Configure global platform variables and policies</p>
+            </div>
+            <button class="btn btn-primary px-10" onclick="saveSettings()">Save Changes</button>
+        </div>
+
+        <div class="settings-grid">
+            <div class="settings-nav">
+                <div class="settings-nav-item active">General Information</div>
+                <div class="settings-nav-item">Service Areas</div>
+                <div class="settings-nav-item">Maintenance Categories</div>
+                <div class="settings-nav-item">Rental Policies</div>
+            </div>
+
+            <div class="card p-10">
+                <form id="settingsForm">
+                    <div class="mb-8">
+                        <h3 class="mb-6">General Information</h3>
+                        <div class="grid-2 gap-6">
+                            <div class="form-group">
+                                <label class="label">Site Name</label>
+                                <input type="text" name="siteName" class="form-control" placeholder="RentEase">
+                            </div>
+                            <div class="form-group">
+                                <label class="label">Support Email</label>
+                                <input type="email" name="supportEmail" class="form-control" placeholder="support@rentease.com">
+                            </div>
+                            <div class="form-group">
+                                <label class="label">Support Phone</label>
+                                <input type="text" name="supportPhone" class="form-control" placeholder="+91 98765 43210">
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="mb-8">
+
+                    <div class="mb-8">
+                        <h3 class="mb-2">Service Cities</h3>
+                        <p class="text-muted mb-4" style="font-size: 0.8rem;">Cities where RentEase operates delivery services</p>
+                        <div class="tag-input" id="cityTags">
+                            <input type="text" id="cityInput" placeholder="Add a city and press Enter" style="border: none; outline: none; flex-grow: 1;">
+                        </div>
+                    </div>
+
+                    <hr class="mb-8">
+
+                    <div class="mb-8">
+                        <h3 class="mb-2">Product Categories</h3>
+                        <p class="text-muted mb-4" style="font-size: 0.8rem;">Manage main rental categories (e.g. Appliances, Furniture)</p>
+                        <div id="categoryList" class="flex-direction-column d-flex gap-2 mb-4">
+                            <!-- Categories via JS -->
+                        </div>
+                        <div class="flex-start gap-2">
+                            <input type="text" id="newCatName" class="form-control" placeholder="New category name..." style="max-width: 200px;">
+                            <button type="button" class="btn btn-ghost" onclick="addCategory()">+ Add Category</button>
+                        </div>
+                    </div>
+
+                    <hr class="mb-8">
+
+                    <div class="mb-8">
+                        <h3 class="mb-6">Rental Policies</h3>
+                        <div class="grid-2 gap-6">
+                            <div class="form-group">
+                                <label class="label">Min. Rental Tenure (Months)</label>
+                                <input type="number" name="minimumTenure" class="form-control" value="3">
+                            </div>
+                            <div class="form-group">
+                                <label class="label">Security Deposit Multiplier</label>
+                                <input type="number" name="securityDepositMultiplier" class="form-control" value="2">
+                                <small class="text-muted">e.g. 2 means 2x monthly rent</small>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="../../js/api.js"></script>
+    <script src="../../js/toast.js"></script>
+    <script src="../../js/loader.js"></script>
+    <script src="../../js/auth.js"></script>
+
+    <script>
+        let cities = [];
+        let categories = [];
+
+        async function fetchSettings() {
+            try {
+                const res = await API.get('/admin/settings');
+                const s = res.data.settings;
+
+                const form = document.getElementById('settingsForm');
+                form.siteName.value = s.siteName || '';
+                form.supportEmail.value = s.supportEmail || '';
+                form.supportPhone.value = s.supportPhone || '';
+                form.minimumTenure.value = s.rentalPolicies?.minimumTenure || 3;
+                form.securityDepositMultiplier.value = s.rentalPolicies?.securityDepositMultiplier || 2;
+
+                cities = s.serviceCities || [];
+                renderCities();
+            } catch (err) {
+                Toast.error('Failed to load settings');
+            }
+        }
+
+        async function fetchCategories() {
+            try {
+                const res = await API.get('/products/categories/all');
+                categories = res.data.categories;
+                renderCategories();
+            } catch (e) {}
+        }
+
+        function renderCategories() {
+            const list = document.getElementById('categoryList');
+            list.innerHTML = categories.map(c => `
+                <div class="flex-between p-3 bg-surface-2 rounded">
+                    <span>${c.name}</span>
+                    <button type="button" class="btn btn-ghost btn-sm text-danger" onclick="deleteCategory('${c._id}')">Delete</button>
+                </div>
+            `).join('');
+        }
+
+        async function addCategory() {
+            const name = document.getElementById('newCatName').value.trim();
+            if (!name) return;
+            try {
+                await API.post('/admin/categories', { name });
+                document.getElementById('newCatName').value = '';
+                Toast.success('Category added');
+                fetchCategories();
+            } catch (e) {
+                Toast.error('Failed to add category');
+            }
+        }
+
+        async function deleteCategory(id) {
+            if (!confirm('Are you sure? This will not delete products in this category but will remove the category listing.')) return;
+            try {
+                await API.delete(`/admin/categories/${id}`);
+                Toast.success('Category removed');
+                fetchCategories();
+            } catch (e) {
+                Toast.error('Failed to remove category');
+            }
+        }
+
+        function renderCities() {
+            const container = document.getElementById('cityTags');
+            const input = document.getElementById('cityInput');
+            container.innerHTML = '';
+            cities.forEach((city, index) => {
+                const tag = document.createElement('div');
+                tag.className = 'tag';
+                tag.innerHTML = `${city} <span onclick="removeCity(${index})">&times;</span>`;
+                container.appendChild(tag);
+            });
+            container.appendChild(input);
+        }
+
+        function removeCity(index) {
+            cities.splice(index, 1);
+            renderCities();
+        }
+
+        document.getElementById('cityInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const val = e.target.value.trim();
+                if (val && !cities.includes(val)) {
+                    cities.push(val);
+                    renderCities();
+                    e.target.value = '';
+                }
+            }
+        });
+
+        async function saveSettings() {
+            try {
+                const form = document.getElementById('settingsForm');
+                const data = {
+                    siteName: form.siteName.value,
+                    supportEmail: form.supportEmail.value,
+                    supportPhone: form.supportPhone.value,
+                    serviceCities: cities,
+                    rentalPolicies: {
+                        minimumTenure: parseInt(form.minimumTenure.value),
+                        securityDepositMultiplier: parseInt(form.securityDepositMultiplier.value)
+                    }
+                };
+
+                await API.put('/admin/settings', data);
+                Toast.success('Settings saved successfully');
+            } catch (err) {
+                Toast.error('Failed to save settings');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await Auth.init();
+            fetchSettings();
+            fetchCategories();
+        });
+    </script>
+</body>
+</html>

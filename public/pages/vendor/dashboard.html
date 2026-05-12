@@ -110,12 +110,12 @@
                 <div class="stat-value" id="statRevenue">₹0</div>
             </div>
             <div class="stat-card animate-slide-up delay-1">
-                <div class="text-muted mb-2">Active Rentals</div>
-                <div class="stat-value" id="statRentals">0</div>
+                <div class="text-muted mb-2">Total Orders</div>
+                <div class="stat-value" id="statOrders">0</div>
             </div>
             <div class="stat-card animate-slide-up delay-2">
-                <div class="text-muted mb-2">Total Products</div>
-                <div class="stat-value" id="statProducts">0</div>
+                <div class="text-muted mb-2">Active Rentals</div>
+                <div class="stat-value" id="statRentals">0</div>
             </div>
             <div class="stat-card animate-slide-up delay-3">
                 <div class="text-muted mb-2">Pending Approvals</div>
@@ -156,9 +156,30 @@
                 const stats = res.data;
                 
                 Gamify.animateValue(document.getElementById('statRevenue'), 0, stats.totalRevenue, 2000);
+                Gamify.animateValue(document.getElementById('statOrders'), 0, stats.totalOrders, 1200);
                 Gamify.animateValue(document.getElementById('statRentals'), 0, stats.activeRentals, 1000);
-                Gamify.animateValue(document.getElementById('statProducts'), 0, stats.totalProducts, 800);
+                Gamify.animateValue(document.getElementById('statPending'), 0, stats.pendingApprovals, 500);
                 
+                // Populate Recent Sales
+                const salesContainer = document.getElementById('recentSales');
+                if (stats.recentOrders && stats.recentOrders.length > 0) {
+                    salesContainer.className = 'flex-direction-column d-flex gap-4';
+                    salesContainer.innerHTML = stats.recentOrders.map(o => `
+                        <div class="flex-between p-4 bg-surface-2 rounded animate-fade-in">
+                            <div>
+                                <div class="font-bold">#${o.orderNumber.split('-').pop()}</div>
+                                <div class="text-muted small">${new Date(o.createdAt).toLocaleDateString()}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold">₹${o.grandTotal.toLocaleString()}</div>
+                                <span class="badge badge-success small" style="font-size: 0.6rem;">${o.orderStatus.toUpperCase()}</span>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    salesContainer.innerHTML = 'No recent sales data';
+                }
+
                 // If revenue is high, celebrate!
                 if (stats.totalRevenue > 0) Gamify.celebration();
                 

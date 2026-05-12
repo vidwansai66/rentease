@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="../../css/animations.css">
     <link rel="stylesheet" href="../../css/responsive.css">
     <script src="../../js/admin-guard.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
     <style>
         body { background: var(--color-bg); display: flex; min-height: 100vh; }
@@ -86,17 +87,9 @@
         .trend-up { color: var(--color-success); font-size: 0.75rem; font-weight: 600; }
 
         /* Custom Bar Chart */
-        .chart-container { background: white; border-radius: var(--radius-xl); border: 1px solid var(--color-border); padding: var(--space-10); margin-top: var(--space-8); }
-        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-10); }
-        .bar-chart { height: 300px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 var(--space-4); border-bottom: 1px solid var(--color-border); position: relative; }
-        .bar-wrapper { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; margin: 0 8px; position: relative; }
-        .bar { width: 100%; max-width: 40px; background: var(--color-primary); border-radius: 4px 4px 0 0; transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; position: relative; }
-        .bar:hover { background: var(--color-accent); }
-        .bar-label { position: absolute; bottom: -30px; font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600; }
-        
-        .chart-y-axis { position: absolute; left: 0; top: 0; bottom: 0; width: 60px; display: flex; flex-direction: column-reverse; justify-content: space-between; font-size: 0.7rem; color: var(--color-text-muted); padding-bottom: 30px; }
-
-        .tooltip { position: absolute; background: var(--color-primary); color: white; padding: 8px 12px; border-radius: 4px; font-size: 0.75rem; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 10; white-space: nowrap; }
+        .chart-y-axis { display: none; }
+        .bar-chart { display: none; }
+        .tooltip { display: none; }
 
         /* Tables */
         .admin-table { width: 100%; border-collapse: collapse; }
@@ -178,21 +171,18 @@
         <!-- Revenue Chart -->
         <div class="chart-container animate-slide-up">
             <div class="chart-header">
-                <h3>Monthly Revenue Trends</h3>
-                <select id="chartPeriod" class="btn btn-ghost btn-sm">
-                    <option>Last 12 Months</option>
-                    <option>Last 6 Months</option>
-                </select>
-            </div>
-            <div style="position: relative; padding-left: 60px;">
-                <div class="chart-y-axis" id="yAxis">
-                    <!-- Labels via JS -->
+                <div>
+                    <h3>Revenue Overview</h3>
+                    <p class="text-muted" style="font-size: 0.75rem;">Monthly performance and growth</p>
                 </div>
-                <div class="bar-chart" id="revenueChart">
-                    <!-- Bars via JS -->
+                <div class="flex-start gap-4">
+                    <select id="chartPeriod" class="btn btn-ghost btn-sm">
+                        <option>Last 12 Months</option>
+                        <option>Last 6 Months</option>
+                    </select>
                 </div>
             </div>
-            <div class="tooltip" id="chartTooltip"></div>
+            <div id="revenueChart" style="min-height: 350px;"></div>
         </div>
 
         <div class="grid-2 mt-8" style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-8);">
@@ -319,49 +309,74 @@
             }
         }
 
+        let chartInstance = null;
+
         function renderChart(data) {
-            const chart = document.getElementById('revenueChart');
-            const yAxis = document.getElementById('yAxis');
-            const tooltip = document.getElementById('chartTooltip');
-            
-            if (data.length === 0) return;
+            const options = {
+                series: [{
+                    name: 'Revenue',
+                    data: data.map(d => d.revenue)
+                }],
+                chart: {
+                    type: 'area',
+                    height: 350,
+                    toolbar: { show: false },
+                    animations: {
+                        enabled: true,
+                        easing: 'easeinout',
+                        speed: 800,
+                        animateGradually: { enabled: true, delay: 150 },
+                        dynamicAnimation: { enabled: true, speed: 350 }
+                    },
+                    fontFamily: 'DM Sans, sans-serif'
+                },
+                dataLabels: { enabled: false },
+                stroke: { curve: 'smooth', width: 3, colors: ['#6366f1'] },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shadeIntensity: 1,
+                        opacityFrom: 0.45,
+                        opacityTo: 0.05,
+                        stops: [20, 100, 100, 100]
+                    }
+                },
+                colors: ['#6366f1'],
+                xaxis: {
+                    categories: data.map(d => d.month),
+                    axisBorder: { show: false },
+                    axisTicks: { show: false },
+                    labels: { style: { colors: '#94a3b8', fontWeight: 500 } }
+                },
+                yaxis: {
+                    labels: {
+                        formatter: (val) => {
+                            if (val >= 100000) return `₹${(val / 100000).toFixed(1)}L`;
+                            if (val >= 1000) return `₹${(val / 1000).toFixed(0)}K`;
+                            return `₹${val}`;
+                        },
+                        style: { colors: '#94a3b8', fontWeight: 500 }
+                    }
+                },
+                grid: {
+                    borderColor: '#f1f5f9',
+                    strokeDashArray: 4,
+                    yaxis: { lines: { show: true } }
+                },
+                tooltip: {
+                    theme: 'dark',
+                    y: {
+                        formatter: (val) => `₹${val.toLocaleString()}`
+                    }
+                }
+            };
 
-            const maxRev = Math.max(...data.map(d => d.revenue));
-            const yLabels = [0, maxRev / 4, maxRev / 2, (maxRev * 3) / 4, maxRev];
-            
-            yAxis.innerHTML = yLabels.map(l => `<span>₹${(l/100000).toFixed(1)}L</span>`).join('');
-
-            chart.innerHTML = data.map((d, i) => `
-                <div class="bar-wrapper">
-                    <div class="bar" 
-                         style="height: 0%" 
-                         onmouseover="showTooltip(event, '${d.month}', ${d.revenue}, ${d.orders})" 
-                         onmouseout="hideTooltip()">
-                    </div>
-                    <div class="bar-label">${d.month}</div>
-                </div>
-            `).join('');
-
-            const bars = chart.querySelectorAll('.bar');
-            setTimeout(() => {
-                bars.forEach((bar, i) => {
-                    const height = maxRev > 0 ? (data[i].revenue / maxRev) * 100 : 0;
-                    bar.style.transition = `height 0.6s ease ${i * 50}ms`;
-                    bar.style.height = `${height}%`;
-                });
-            }, 100);
-        }
-
-        function showTooltip(e, month, rev, orders) {
-            const tooltip = document.getElementById('chartTooltip');
-            tooltip.style.opacity = '1';
-            tooltip.innerHTML = `<strong>${month}</strong><br>Rev: ₹${rev.toLocaleString()}<br>Orders: ${orders}`;
-            tooltip.style.left = `${e.pageX + 10}px`;
-            tooltip.style.top = `${e.pageY - 40}px`;
-        }
-
-        function hideTooltip() {
-            document.getElementById('chartTooltip').style.opacity = '0';
+            if (chartInstance) {
+                chartInstance.updateOptions(options);
+            } else {
+                chartInstance = new ApexCharts(document.querySelector("#revenueChart"), options);
+                chartInstance.render();
+            }
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
