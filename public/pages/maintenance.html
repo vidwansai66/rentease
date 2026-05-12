@@ -115,6 +115,23 @@
 
         .lightbox { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 3000; display: none; align-items: center; justify-content: center; }
         .lightbox img { max-width: 90%; max-height: 90%; }
+
+        /* Missing radio-card styles */
+        .radio-card { 
+            border: 1px solid var(--color-border); 
+            padding: var(--space-6); 
+            border-radius: var(--radius-lg); 
+            cursor: pointer; 
+            transition: all 0.2s; 
+            background: white;
+            text-align: center;
+        }
+        .radio-card:hover { border-color: var(--color-accent); background: rgba(244, 166, 35, 0.05); }
+        .radio-card.selected { 
+            border-color: var(--color-accent); 
+            background: rgba(244, 166, 35, 0.1); 
+            box-shadow: 0 0 0 2px var(--color-accent);
+        }
     </style>
 </head>
 <body>
@@ -234,6 +251,7 @@
         let allTickets = [];
         let currentTicketId = null;
         let selectedRentalId = null;
+        let selectedRentalName = null;
         let selectedIssueType = null;
         let selectedFiles = [];
 
@@ -404,6 +422,7 @@
             document.querySelectorAll('.wizard-step').forEach(s => s.style.display = 'none');
             document.getElementById(`step_${n}`).style.display = 'block';
             document.getElementById('wizardTitle').innerText = n === 1 ? '1. Select Item' : (n === 2 ? '2. Describe Issue' : '3. Confirm');
+            document.getElementById('wizard').scrollTop = 0;
         }
 
         function prevStep(n) {
