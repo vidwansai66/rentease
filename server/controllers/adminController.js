@@ -72,10 +72,10 @@ exports.getStats = async (req, res, next) => {
             ordersThisMonth,
             totalRevenue: revenueAll[0]?.total || 0,
             revenueThisMonth: revenueMonth[0]?.total || 0,
-            openTickets,
+            openTickets: openTickets || 0,
             lowInventory,
             recentOrders,
-            recentTickets,
+            recentTickets: recentTickets || [],
             statusCounts
         });
     } catch (error) {

@@ -399,16 +399,22 @@
                 const res = await API.get('/rentals');
                 const rentals = res.data.rentals.filter(r => r.status === 'active' || r.status === 'extended');
                 rentalList.innerHTML = rentals.map(r => `
-                    <label class="radio-card p-4 flex-start gap-6 cursor-pointer">
-                        <input type="radio" name="rental" value="${r._id}" onchange="selectedRentalId='${r._id}'; selectedRentalName='${r.product.name}'">
+                    <div class="radio-card p-4 flex-start gap-6 cursor-pointer rental-card" onclick="selectRental('${r._id}', '${r.product.name.replace(/'/g, "\\'")}', this)">
                         <img src="${r.product.images[0]}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
                         <div>
                             <div class="font-bold" style="font-size: 0.9rem;">${r.product.name}</div>
                             <div class="text-muted" style="font-size: 0.75rem;">${r.rentalPlan.label}</div>
                         </div>
-                    </label>
+                    </div>
                 `).join('');
             } catch (e) {}
+        }
+
+        function selectRental(id, name, el) {
+            selectedRentalId = id;
+            selectedRentalName = name;
+            document.querySelectorAll('.rental-card').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
         }
 
         function nextStep(n) {
