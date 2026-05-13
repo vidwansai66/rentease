@@ -549,15 +549,36 @@ exports.adminGetMaintenanceRequests = async (req, res, next) => {
 // @access  Private/Admin
 exports.adminUpdateMaintenanceStatus = async (req, res, next) => {
     try {
-        const { status, adminNotes } = req.body;
-        const request = await MaintenanceRequest.findByIdAndUpdate(
-            req.params.id, 
-            { status, adminNotes, resolvedAt: status === 'resolved' ? new Date() : undefined }, 
-            { new: true }
-        );
+        const { status, assignedTechnician, scheduledVisit, resolution, adminNotes } = req.body;
 
-        if (!request) return sendResponse(res, 404, false, 'Request not found');
-        sendResponse(res, 200, true, 'Maintenance status updated', { request });
+        const ticket = await MaintenanceRequest.findById(req.params.id);
+        if (!ticket) {
+            return sendResponse(res, 404, false, 'Maintenance ticket not found');
+        }
+
+        if (status && status !== ticket.status) {
+            ticket.status = status;
+            ticket.statusHistory.push({
+                status,
+                timestamp: new Date(),
+                note: adminNotes || `Status updated to ${status.replace('-', ' ')} by Admin`
+            });
+
+            if (status === 'resolved') {
+                ticket.resolution = {
+                    notes: resolution?.notes || adminNotes || 'Issue resolved',
+                    resolvedAt: new Date()
+                };
+            }
+        }
+
+        if (assignedTechnician) ticket.assignedTechnician = assignedTechnician;
+        if (scheduledVisit) ticket.scheduledVisit = scheduledVisit;
+        if (adminNotes) ticket.adminNotes = adminNotes;
+
+        await ticket.save();
+
+        sendResponse(res, 200, true, 'Maintenance ticket updated successfully', { ticket });
     } catch (error) {
         next(error);
     }

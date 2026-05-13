@@ -58,9 +58,9 @@ exports.getActiveRentals = async (req, res, next) => {
             const end = new Date(r.endDate).getTime();
             const now = Date.now();
 
-            const daysTotal = Math.ceil((end - start) / 86400000);
-            const daysElapsed = Math.ceil((now - start) / 86400000);
-            const percentRemaining = Math.max(0, Math.min(100, Math.round((1 - daysElapsed / daysTotal) * 100)));
+            const daysTotal = Math.max(1, Math.ceil((end - start) / 86400000));
+            const daysElapsed = Math.max(0, Math.ceil((now - start) / 86400000));
+            const percentRemaining = Math.max(0, Math.min(100, Math.round((1 - (daysElapsed / daysTotal)) * 100)));
             const isExpiringSoon = r.endDate < new Date(now + 30 * 24 * 60 * 60 * 1000);
 
             return {

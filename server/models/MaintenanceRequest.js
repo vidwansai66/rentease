@@ -38,7 +38,7 @@ const maintenanceRequestSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['submitted', 'under-review', 'technician-assigned', 'resolved', 'closed'],
+        enum: ['submitted', 'under-review', 'scheduled', 'assigned', 'resolved', 'closed'],
         default: 'submitted'
     },
     assignedTechnician: {

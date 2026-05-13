@@ -249,36 +249,87 @@
 
     <script>
         let allTickets = [];
+        let filteredTickets = [];
         let currentTicketId = null;
         let selectedRentalId = null;
         let selectedRentalName = null;
         let selectedIssueType = null;
         let selectedFiles = [];
+        let currentFilter = 'all';
 
         // Fetching Data
-        async function fetchTickets() {
+        async function fetchTickets(silent = false) {
+            const list = document.getElementById('ticketList');
+            if (!silent && allTickets.length === 0) {
+                list.innerHTML = Array(3).fill(0).map(() => `
+                    <div class="ticket-item" style="pointer-events:none">
+                        <div class="skeleton" style="height:12px; width:40%; margin-bottom:8px;"></div>
+                        <div class="skeleton" style="height:18px; width:80%; margin-bottom:12px;"></div>
+                        <div class="flex-start gap-2">
+                            <div class="skeleton" style="height:16px; width:50px; border-radius:10px;"></div>
+                            <div class="skeleton" style="height:16px; width:70px; border-radius:10px;"></div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
             try {
                 const res = await API.get('/maintenance');
-                allTickets = res.data.tickets;
-                renderTicketList();
-            } catch (err) {}
+                allTickets = res.data.tickets || [];
+                applyFilter(currentFilter);
+            } catch (err) {
+                if (!silent) {
+                    list.innerHTML = `<div class="p-6 text-center text-muted">Failed to load tickets</div>`;
+                    Toast.error('Could not refresh tickets');
+                }
+            }
+        }
+
+        function filterTickets(type, el) {
+            currentFilter = type;
+            document.querySelectorAll('.list-header span').forEach(s => s.classList.remove('active'));
+            el.classList.add('active');
+            applyFilter(type);
+        }
+
+        function applyFilter(type) {
+            if (type === 'all') {
+                filteredTickets = allTickets;
+            } else if (type === 'open') {
+                filteredTickets = allTickets.filter(t => !['resolved', 'closed'].includes(t.status));
+            } else if (type === 'resolved') {
+                filteredTickets = allTickets.filter(t => ['resolved', 'closed'].includes(t.status));
+            }
+            renderTicketList();
         }
 
         function renderTicketList() {
             const list = document.getElementById('ticketList');
-            list.innerHTML = allTickets.map(t => {
+            if (filteredTickets.length === 0) {
+                list.innerHTML = `
+                    <div class="flex-center flex-direction-column py-12 text-center opacity-50">
+                        <div style="font-size: 2rem;">empty</div>
+                        <p style="font-size: 0.8rem;">No ${currentFilter !== 'all' ? currentFilter : ''} tickets found</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = filteredTickets.map(t => {
                 const isUnread = localStorage.getItem(`ticket_read_${t._id}`) !== t.updatedAt;
+                const isActive = t._id === currentTicketId;
+                
                 return `
-                    <div class="ticket-item ${t._id === currentTicketId ? 'active' : ''}" onclick="loadTicketDetail('${t._id}')">
+                    <div class="ticket-item ${isActive ? 'active' : ''}" onclick="loadTicketDetail('${t._id}')">
                         ${isUnread ? '<div class="unread-dot"></div>' : ''}
                         <div class="flex-between mb-2">
-                            <span style="font-family: var(--font-mono); font-weight: 700; font-size: 0.8rem;">#${t.ticketNumber}</span>
+                            <span style="font-family: var(--font-mono); font-weight: 700; font-size: 0.8rem; color: ${isActive ? 'var(--color-primary-dark)' : 'var(--color-text-muted)'};">#${t.ticketNumber}</span>
                             <span class="text-muted" style="font-size: 0.7rem;">${new Date(t.createdAt).toLocaleDateString('en-IN', {day:'numeric', month:'short'})}</span>
                         </div>
-                        <div class="font-bold" style="font-size: 0.9rem;">${t.product.name.substring(0, 25)}...</div>
+                        <div class="font-bold" style="font-size: 0.9rem; color: var(--color-text);">${t.product?.name ? t.product.name.substring(0, 30) + (t.product.name.length > 30 ? '...' : '') : 'Unknown Product'}</div>
                         <div class="flex-start gap-2 mt-3">
-                            <span class="badge badge-outline" style="font-size: 0.65rem;">${t.issueType.toUpperCase()}</span>
-                            <span class="badge ${getStatusClass(t.status)}" style="font-size: 0.65rem;">${t.status.toUpperCase()}</span>
+                            <span class="badge badge-outline" style="font-size: 0.65rem; padding: 2px 8px;">${t.issueType?.toUpperCase() || 'ISSUE'}</span>
+                            <span class="badge ${getStatusClass(t.status)}" style="font-size: 0.65rem; padding: 2px 8px;">${t.status?.toUpperCase() || 'UNKNOWN'}</span>
                         </div>
                     </div>
                 `;
@@ -286,28 +337,50 @@
         }
 
         function getStatusClass(status) {
-            if (['submitted', 'under-review'].includes(status)) return 'badge-info';
-            if (['assigned', 'scheduled'].includes(status)) return 'badge-warning';
-            if (['resolved', 'closed'].includes(status)) return 'badge-success';
-            return 'badge-outline';
+            switch(status) {
+                case 'submitted':
+                case 'under-review': return 'badge-info';
+                case 'scheduled':
+                case 'assigned': return 'badge-warning';
+                case 'resolved':
+                case 'closed': return 'badge-success';
+                default: return 'badge-outline';
+            }
         }
 
         async function loadTicketDetail(id) {
             currentTicketId = id;
-            localStorage.setItem(`ticket_read_${id}`, allTickets.find(t=>t._id===id).updatedAt);
+            
+            // Mark as read
+            const ticket = allTickets.find(t => t._id === id);
+            if (ticket) {
+                localStorage.setItem(`ticket_read_${id}`, ticket.updatedAt);
+            }
+            
             renderTicketList();
             
-            document.getElementById('detailEmpty').style.display = 'none';
             const content = document.getElementById('detailContent');
-            content.innerHTML = '<div class="skeleton" style="height: 400px;"></div>';
+            const emptyState = document.getElementById('detailEmpty');
+            
+            emptyState.style.display = 'none';
             content.style.display = 'block';
+            content.innerHTML = `
+                <div class="animate-fade-in">
+                    <div class="skeleton mb-8" style="height: 60px; border-radius: 12px;"></div>
+                    <div class="skeleton mb-8" style="height: 120px; border-radius: 12px;"></div>
+                    <div class="skeleton mb-8" style="height: 100px; border-radius: 12px;"></div>
+                    <div class="skeleton" style="height: 200px; border-radius: 12px;"></div>
+                </div>
+            `;
 
             try {
                 const res = await API.get(`/maintenance/${id}`);
                 const t = res.data.ticket;
+                if (!t) throw new Error('Ticket data missing');
                 renderDetail(t);
             } catch (err) {
-                Toast.error('Failed to load ticket details');
+                console.error('Error loading ticket:', err);
+                utils.renderError(content, 'Failed to load ticket details. ' + (err.message || ''), () => loadTicketDetail(id));
             }
         }
 
@@ -315,72 +388,127 @@
             const content = document.getElementById('detailContent');
             content.innerHTML = `
                 <div class="animate-fade-in">
-                    <div class="flex-between mb-8">
+                    <div class="flex-between mb-8 align-start">
                         <div>
-                            <span style="font-family: var(--font-mono); font-weight: 700; color: var(--color-text-muted);">TICKET #${t.ticketNumber}</span>
-                            <h2 class="mt-2">Maintenance Request</h2>
+                            <span style="font-family: var(--font-mono); font-weight: 700; color: var(--color-text-muted); font-size: 0.9rem;">TICKET #${t.ticketNumber}</span>
+                            <h2 class="mt-2" style="font-size: 1.75rem;">Maintenance Request</h2>
+                            <p class="text-muted mt-1">Requested on ${new Date(t.createdAt).toLocaleDateString('en-IN', { dateStyle: 'long' })}</p>
                         </div>
-                        <div class="badge ${getStatusClass(t.status)} btn-lg">${t.status.toUpperCase()}</div>
-                    </div>
-
-                    <div class="card p-6 mb-8 flex-start gap-6" style="border: 1px solid var(--color-border);">
-                        <img src="${t.product.images[0]}" style="width: 80px; height: 80px; object-fit: cover; border-radius: var(--radius-md);">
-                        <div>
-                            <div class="font-bold">${t.product.name}</div>
-                            <div class="text-muted" style="font-size: 0.875rem;">${t.product.brand} · Started ${new Date(t.rental.startDate).toLocaleDateString()}</div>
+                        <div class="badge ${getStatusClass(t.status)} p-3 px-6" style="font-size: 0.9rem; font-weight: 700; border-radius: 50px;">
+                            ${t.status?.toUpperCase().replace('-', ' ')}
                         </div>
                     </div>
 
-                    <div class="mb-10">
-                        <h4 class="mb-4">Description</h4>
-                        <div class="p-6 bg-surface-2 rounded text-secondary" style="white-space: pre-line;">${t.description}</div>
-                    </div>
-
-                    ${t.images.length > 0 ? `
-                        <div class="mb-10">
-                            <h4 class="mb-4">Images</h4>
-                            <div class="flex-start gap-4">
-                                ${t.images.map(img => `<img src="${img}" class="cursor-pointer rounded-lg" style="width: 100px; height: 100px; object-fit: cover;" onclick="openLightbox('${img}')">`).join('')}
+                    <div class="card p-6 mb-10 flex-start gap-6" style="border: 1px solid var(--color-border); background: var(--color-surface); box-shadow: var(--shadow-sm);">
+                        <img src="${t.product?.images?.[0] || '/images/placeholder-product.jpg'}" 
+                             style="width: 100px; height: 100px; object-fit: cover; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);"
+                             onerror="this.src='/images/placeholder-product.jpg'">
+                        <div style="flex: 1;">
+                            <div style="font-size: 0.75rem; color: var(--color-accent); font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">Associated Rental</div>
+                            <h3 class="font-bold" style="font-size: 1.15rem; margin-bottom: 4px;">${t.product?.name || 'Unknown Product'}</h3>
+                            <div class="text-muted" style="font-size: 0.875rem;">
+                                ${t.product?.brand || 'Brand unknown'} · 
+                                <span style="color: var(--color-primary);">Plan: ${t.rental?.rentalPlan?.label || 'Active'}</span>
                             </div>
                         </div>
-                    ` : ''}
-
-                    <h4 class="mb-6">Tracking Timeline</h4>
-                    <div class="timeline">
-                        ${renderTimeline(t)}
                     </div>
+
+                    <div class="grid-2 gap-8 mb-10">
+                        <div class="mb-4">
+                            <h4 class="mb-4 flex-start gap-2">📝 Issue Description</h4>
+                            <div class="p-6 bg-surface-2 rounded-xl text-secondary" style="white-space: pre-line; line-height: 1.6; border: 1px solid var(--color-border);">
+                                <div class="mb-2"><span class="badge badge-outline">${t.issueType?.toUpperCase()}</span></div>
+                                ${t.description || 'No description provided.'}
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 class="mb-4 flex-start gap-2">🖼️ Attached Media</h4>
+                            ${t.images && t.images.length > 0 ? `
+                                <div class="flex-start gap-4 flex-wrap">
+                                    ${t.images.map(img => `
+                                        <div class="image-preview-wrapper" onclick="openLightbox('${img}')">
+                                            <img src="${img}" class="cursor-pointer rounded-lg hover-scale" 
+                                                 style="width: 100px; height: 100px; object-fit: cover; border: 2px solid var(--color-border);">
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : `
+                                <div class="p-10 bg-surface-2 rounded-xl text-center border-dashed border-2 text-muted" style="border-color: var(--color-border);">
+                                    No images attached
+                                </div>
+                            `}
+                        </div>
+                    </div>
+
+                    <div class="mt-12">
+                        <h4 class="mb-8 flex-start gap-2">🛤️ Resolution Timeline</h4>
+                        <div class="timeline">
+                            ${renderTimeline(t)}
+                        </div>
+                    </div>
+                    
+                    ${t.status === 'closed' && t.resolution ? `
+                        <div class="mt-12 card p-8 bg-success-light" style="border: 1px solid var(--color-success);">
+                            <h4 class="mb-4 text-success">✅ Resolution Notes</h4>
+                            <p>${t.resolution.notes || 'The issue has been successfully resolved.'}</p>
+                            <div class="text-muted mt-4" style="font-size: 0.8rem;">Resolved on ${new Date(t.resolution.resolvedAt).toLocaleString()}</div>
+                        </div>
+                    ` : ''}
                 </div>
             `;
         }
 
         function renderTimeline(t) {
             const steps = [
-                { id: 'submitted', label: 'Ticket Submitted' },
-                { id: 'under-review', label: 'Under Review' },
-                { id: 'assigned', label: 'Technician Assigned' },
-                { id: 'scheduled', label: 'Visit Scheduled' },
-                { id: 'resolved', label: 'Resolved' },
-                { id: 'closed', label: 'Ticket Closed' }
+                { id: 'submitted', label: 'Ticket Submitted', desc: 'Request received by system' },
+                { id: 'under-review', label: 'Under Review', desc: 'Team is assessing the issue' },
+                { id: 'scheduled', label: 'Visit Scheduled', desc: 'Technician visit date set' },
+                { id: 'assigned', label: 'Technician Assigned', desc: 'Personnel assigned to task' },
+                { id: 'resolved', label: 'Resolved', desc: 'Maintenance completed' },
+                { id: 'closed', label: 'Ticket Closed', desc: 'Process finalized' }
             ];
 
             const currentIdx = steps.findIndex(s => s.id === t.status);
             
             return steps.map((step, idx) => {
-                const history = t.statusHistory.find(h => h.status === step.id);
+                const history = t.statusHistory?.find(h => h.status === step.id);
                 const isCompleted = idx <= currentIdx;
                 const isActive = idx === currentIdx;
 
                 return `
                     <div class="timeline-item ${isCompleted ? 'completed' : ''} ${isActive ? 'active' : ''}">
                         <div class="timeline-marker"></div>
-                        <div class="font-bold" style="font-size: 0.9rem;">${step.label}</div>
-                        ${history ? `<div class="text-muted" style="font-size: 0.75rem;">${new Date(history.timestamp).toLocaleString()}</div>` : ''}
-                        ${step.id === 'assigned' && t.assignedTechnician.name ? `
-                            <div class="mt-2 p-3 bg-surface-2 rounded-lg" style="font-size: 0.8rem;">
-                                👤 <strong>${t.assignedTechnician.name}</strong><br>
-                                📞 ${t.assignedTechnician.phone}
+                        <div class="timeline-content">
+                            <div class="flex-between">
+                                <div class="font-bold" style="font-size: 1rem; color: ${isCompleted ? 'var(--color-text)' : 'var(--color-text-muted)'};">${step.label}</div>
+                                ${history ? `<div class="text-muted" style="font-size: 0.75rem;">${new Date(history.timestamp).toLocaleString('en-IN', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'})}</div>` : ''}
                             </div>
-                        ` : ''}
+                            <div class="text-muted" style="font-size: 0.85rem; margin-top: 2px;">${step.desc}</div>
+                            
+                            ${step.id === 'assigned' && t.assignedTechnician?.name ? `
+                                <div class="mt-4 p-4 bg-surface-2 rounded-xl border-1" style="border: 1px solid var(--color-border); max-width: 300px;">
+                                    <div class="text-accent font-bold mb-2" style="font-size: 0.7rem; text-transform: uppercase;">Assigned Professional</div>
+                                    <div class="flex-start gap-3">
+                                        <div class="avatar-sm" style="width: 32px; height: 32px; background: var(--color-primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;">
+                                            ${t.assignedTechnician.name.split(' ').map(n=>n[0]).join('')}
+                                        </div>
+                                        <div>
+                                            <div class="font-bold" style="font-size: 0.9rem;">${t.assignedTechnician.name}</div>
+                                            <div class="text-muted" style="font-size: 0.8rem;">📞 ${t.assignedTechnician.phone}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ` : ''}
+
+                            ${step.id === 'scheduled' && t.scheduledVisit?.date ? `
+                                <div class="mt-4 p-4 bg-surface-2 rounded-xl border-1" style="border: 1px solid var(--color-border); max-width: 300px;">
+                                    <div class="text-accent font-bold mb-2" style="font-size: 0.7rem; text-transform: uppercase;">Scheduled Visit</div>
+                                    <div style="font-size: 0.9rem;">📅 <strong>${new Date(t.scheduledVisit.date).toLocaleDateString(undefined, {weekday:'long', month:'short', day:'numeric'})}</strong></div>
+                                    <div class="text-muted" style="font-size: 0.85rem;">🕒 Time Slot: ${t.scheduledVisit.timeSlot || '9 AM - 6 PM'}</div>
+                                </div>
+                            ` : ''}
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -393,21 +521,42 @@
             
             // Load rentals
             const rentalList = document.getElementById('rentalList');
-            rentalList.innerHTML = '<div class="skeleton" style="height: 100px;"></div>';
+            rentalList.innerHTML = Array(2).fill(0).map(() => `
+                <div class="card p-4 flex-start gap-4">
+                    <div class="skeleton" style="width: 50px; height: 50px; border-radius: 4px;"></div>
+                    <div style="flex: 1;">
+                        <div class="skeleton mb-2" style="height: 14px; width: 60%;"></div>
+                        <div class="skeleton" style="height: 10px; width: 40%;"></div>
+                    </div>
+                </div>
+            `).join('');
             
             try {
                 const res = await API.get('/rentals');
-                const rentals = res.data.rentals.filter(r => r.status === 'active' || r.status === 'extended');
+                const rentals = (res.data.rentals || []).filter(r => r.status === 'active' || r.status === 'extended');
+                
+                if (rentals.length === 0) {
+                    rentalList.innerHTML = `
+                        <div class="text-center p-8 bg-surface-2 rounded-xl">
+                            <p class="text-muted">You don't have any active rentals to request maintenance for.</p>
+                            <a href="/pages/products.html" class="btn btn-primary btn-sm mt-4">Browse Products</a>
+                        </div>
+                    `;
+                    return;
+                }
+
                 rentalList.innerHTML = rentals.map(r => `
-                    <div class="radio-card p-4 flex-start gap-6 cursor-pointer rental-card" onclick="selectRental('${r._id}', '${r.product.name.replace(/'/g, "\\'")}', this)">
-                        <img src="${r.product.images[0]}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
-                        <div>
-                            <div class="font-bold" style="font-size: 0.9rem;">${r.product.name}</div>
-                            <div class="text-muted" style="font-size: 0.75rem;">${r.rentalPlan.label}</div>
+                    <div class="radio-card p-4 flex-start gap-6 cursor-pointer rental-card" onclick="selectRental('${r._id}', '${r.product?.name?.replace(/'/g, "\\'") || 'Unknown Product'}', this)">
+                        <img src="${r.product?.images?.[0] || '/images/placeholder-product.jpg'}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;" onerror="this.src='/images/placeholder-product.jpg'">
+                        <div class="text-left">
+                            <div class="font-bold" style="font-size: 0.95rem;">${r.product?.name || 'Unknown Product'}</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">${r.rentalPlan?.label || 'Monthly Plan'} · Started ${new Date(r.startDate).toLocaleDateString()}</div>
                         </div>
                     </div>
                 `).join('');
-            } catch (e) {}
+            } catch (e) {
+                rentalList.innerHTML = `<p class="text-center text-danger p-4">Error loading rentals. Please try again.</p>`;
+            }
         }
 
         function selectRental(id, name, el) {
@@ -426,9 +575,12 @@
             }
 
             document.querySelectorAll('.wizard-step').forEach(s => s.style.display = 'none');
-            document.getElementById(`step_${n}`).style.display = 'block';
-            document.getElementById('wizardTitle').innerText = n === 1 ? '1. Select Item' : (n === 2 ? '2. Describe Issue' : '3. Confirm');
-            document.getElementById('wizard').scrollTop = 0;
+            const stepEl = document.getElementById(`step_${n}`);
+            if (stepEl) {
+                stepEl.style.display = 'block';
+                document.getElementById('wizardTitle').innerText = n === 1 ? '1. Select Item' : (n === 2 ? '2. Describe Issue' : '3. Confirm');
+                document.getElementById('wizard').scrollTop = 0;
+            }
         }
 
         function prevStep(n) {
@@ -463,10 +615,11 @@
                 
                 const reader = new FileReader();
                 reader.onload = (e) => {
+                    const idx = selectedFiles.length - 1;
                     const preview = `
-                        <div class="preview-img">
+                        <div class="preview-img" data-idx="${idx}">
                             <img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
-                            <span class="remove-img" onclick="removeImage(${selectedFiles.length - 1})">✕</span>
+                            <span class="remove-img" onclick="removeImage(${idx})">✕</span>
                         </div>
                     `;
                     document.getElementById('imagePreviews').insertAdjacentHTML('beforeend', preview);
@@ -483,7 +636,7 @@
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     grid.insertAdjacentHTML('beforeend', `
-                        <div class="preview-img">
+                        <div class="preview-img" data-idx="${i}">
                             <img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
                             <span class="remove-img" onclick="removeImage(${i})">✕</span>
                         </div>
@@ -496,16 +649,32 @@
         function populateConfirm() {
             const desc = document.getElementById('issueDesc').value;
             document.getElementById('confirmSummary').innerHTML = `
-                <div class="mb-4"><strong>Product:</strong> ${selectedRentalName}</div>
-                <div class="mb-4"><strong>Issue:</strong> ${selectedIssueType.toUpperCase()}</div>
-                <div><strong>Description:</strong> ${desc.substring(0, 100)}${desc.length > 100 ? '...' : ''}</div>
-                <div class="mt-4 text-muted"><strong>Images:</strong> ${selectedFiles.length} attached</div>
+                <div class="flex-direction-column d-flex gap-4">
+                    <div class="flex-between pb-4" style="border-bottom: 1px solid rgba(0,0,0,0.05)">
+                        <span class="text-muted">Product</span>
+                        <span class="font-bold">${selectedRentalName}</span>
+                    </div>
+                    <div class="flex-between pb-4" style="border-bottom: 1px solid rgba(0,0,0,0.05)">
+                        <span class="text-muted">Issue Type</span>
+                        <span class="badge badge-outline">${selectedIssueType.toUpperCase()}</span>
+                    </div>
+                    <div class="pb-4" style="border-bottom: 1px solid rgba(0,0,0,0.05)">
+                        <div class="text-muted mb-2">Description</div>
+                        <div style="font-size: 0.9rem; line-height: 1.5;">${desc}</div>
+                    </div>
+                    <div class="flex-between">
+                        <span class="text-muted">Images</span>
+                        <span>${selectedFiles.length} attached</span>
+                    </div>
+                </div>
             `;
         }
 
         async function submitTicket() {
             const btn = document.getElementById('submitBtn');
-            btnLoader(btn);
+            const originalText = btn.innerText;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-sm"></span> Submitting...';
 
             const formData = new FormData();
             formData.append('rentalId', selectedRentalId);
@@ -519,11 +688,12 @@
                 
                 Toast.success('🔧 Ticket #' + ticket.ticketNumber + ' submitted successfully!');
                 closeWizard();
-                fetchTickets();
+                await fetchTickets(true);
                 loadTicketDetail(ticket._id);
             } catch (err) {
-                btnLoaderDone(btn, false);
-                Toast.error(err.message);
+                btn.disabled = false;
+                btn.innerText = originalText;
+                Toast.error(err.message || 'Failed to submit ticket');
             }
         }
 
@@ -531,13 +701,16 @@
             document.getElementById('wizard').style.display = 'none';
             selectedFiles = [];
             selectedIssueType = null;
+            selectedRentalId = null;
             document.getElementById('imagePreviews').innerHTML = '';
             document.getElementById('issueDesc').value = '';
+            document.querySelectorAll('.radio-card').forEach(c => c.classList.remove('selected'));
         }
 
         function openLightbox(src) {
             const lb = document.getElementById('lightbox');
-            document.getElementById('lightboxImg').src = src;
+            const img = document.getElementById('lightboxImg');
+            img.src = src;
             lb.style.display = 'flex';
         }
 
@@ -547,17 +720,22 @@
                 if (document.hidden) return;
                 try {
                     const res = await API.get('/maintenance');
-                    const newTickets = res.data.tickets;
+                    const newTickets = res.data.tickets || [];
                     
+                    let changed = false;
                     newTickets.forEach(nt => {
                         const old = allTickets.find(t => t._id === nt._id);
                         if (old && old.status !== nt.status) {
-                            Toast.info(`Ticket #${nt.ticketNumber} status updated to ${nt.status}`);
+                            changed = true;
+                            Toast.info(`Ticket #${nt.ticketNumber} updated to ${nt.status.replace('-', ' ')}`);
                             if (currentTicketId === nt._id) loadTicketDetail(nt._id);
                         }
                     });
-                    allTickets = newTickets;
-                    renderTicketList();
+                    
+                    if (changed || newTickets.length !== allTickets.length) {
+                        allTickets = newTickets;
+                        applyFilter(currentFilter);
+                    }
                 } catch (e) {}
             }, 30000);
         }
@@ -568,35 +746,39 @@
             
             // Init Sidebar
             const sidebar = document.getElementById('sidebar');
-            sidebar.innerHTML = `
-                <div class="user-profile-summary">
-                    <div class="avatar-circle" id="userAvatar">${user.name.split(' ').map(n=>n[0]).join('').toUpperCase()}</div>
-                    <div style="font-weight: 700; font-size: 1.1rem;">${user.name}</div>
-                    <div style="font-size: 0.8125rem; opacity: 0.5;">${user.email}</div>
-                </div>
-                <nav class="nav-list">
-                    <a href="/pages/dashboard.html" class="nav-item">🏠 Dashboard</a>
-                    <a href="/pages/active-rentals.html" class="nav-item">🛋️ Active Rentals</a>
-                    <a href="/pages/rental-history.html" class="nav-item">📜 Rental History</a>
-                    <a href="/pages/maintenance.html" class="nav-item active">🛠️ Maintenance</a>
-                    <a href="/pages/profile.html" class="nav-item">⚙️ Profile Settings</a>
-                </nav>
-                <div style="padding: 0 var(--space-6) var(--space-6);">
-                    <button class="btn btn-outline" style="width: 100%; border-color: rgba(255,255,255,0.2); color: white;" onclick="Auth.logout()">Logout</button>
-                </div>
-            `;
+            if (sidebar) {
+                sidebar.innerHTML = `
+                    <div class="user-profile-summary">
+                        <div class="avatar-circle" id="userAvatar">${user.name ? user.name.split(' ').map(n=>n[0]).join('').toUpperCase() : 'U'}</div>
+                        <div style="font-weight: 700; font-size: 1.1rem; color: white;">${user.name || 'User'}</div>
+                        <div style="font-size: 0.8125rem; opacity: 0.5; color: white;">${user.email || ''}</div>
+                    </div>
+                    <nav class="nav-list">
+                        <a href="/pages/dashboard.html" class="nav-item">🏠 Dashboard</a>
+                        <a href="/pages/active-rentals.html" class="nav-item">🛋️ Active Rentals</a>
+                        <a href="/pages/rental-history.html" class="nav-item">📜 Rental History</a>
+                        <a href="/pages/maintenance.html" class="nav-item active">🛠️ Maintenance</a>
+                        <a href="/pages/profile.html" class="nav-item">⚙️ Profile Settings</a>
+                    </nav>
+                    <div style="padding: 0 var(--space-6) var(--space-6); margin-top: auto;">
+                        <button class="btn btn-outline" style="width: 100%; border-color: rgba(255,255,255,0.2); color: white;" onclick="Auth.logout()">Logout</button>
+                    </div>
+                `;
+            }
 
             // Drag and Drop
             const dz = document.getElementById('dropZone');
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
-                dz.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); }, false);
-            });
-            dz.addEventListener('dragover', () => dz.classList.add('dragover'));
-            dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
-            dz.addEventListener('drop', e => {
-                dz.classList.remove('dragover');
-                handleFiles(e.dataTransfer.files);
-            });
+            if (dz) {
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
+                    dz.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); }, false);
+                });
+                dz.addEventListener('dragover', () => dz.classList.add('dragover'));
+                dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+                dz.addEventListener('drop', e => {
+                    dz.classList.remove('dragover');
+                    handleFiles(e.dataTransfer.files);
+                });
+            }
 
             Auth.init();
             fetchTickets();

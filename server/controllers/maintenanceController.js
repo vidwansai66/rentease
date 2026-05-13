@@ -78,7 +78,7 @@ exports.getTicketById = async (req, res, next) => {
         .populate('rental');
 
         if (!ticket) {
-            return sendResponse(res, 403, false, 'Ticket not found');
+            return sendResponse(res, 404, false, 'Ticket not found or access denied');
         }
 
         sendResponse(res, 200, true, 'Ticket details fetched', { ticket });
@@ -87,63 +87,4 @@ exports.getTicketById = async (req, res, next) => {
     }
 };
 
-// @desc    Admin: Get all tickets
-// @route   GET /api/v1/admin/maintenance
-// @access  Admin
-exports.adminGetAll = async (req, res, next) => {
-    try {
-        const { status, page = 1, limit = 10 } = req.query;
-        let query = {};
-        if (status) query.status = status;
 
-        const tickets = await MaintenanceRequest.find(query)
-            .sort('-createdAt')
-            .skip((page - 1) * limit)
-            .limit(+limit)
-            .populate('user', 'name email')
-            .populate('product', 'name');
-
-        const total = await MaintenanceRequest.countDocuments(query);
-
-        sendResponse(res, 200, true, 'All tickets fetched', { 
-            tickets, 
-            total,
-            totalPages: Math.ceil(total / limit)
-        });
-    } catch (error) {
-        next(error);
-    }
-};
-
-// @desc    Admin: Update ticket status
-// @route   PUT /api/v1/admin/maintenance/:id
-// @access  Admin
-exports.adminUpdateTicket = async (req, res, next) => {
-    try {
-        const { status, assignedTechnician, scheduledVisit, resolution } = req.body;
-
-        const ticket = await MaintenanceRequest.findById(req.params.id);
-        if (!ticket) {
-            return sendResponse(res, 404, false, 'Ticket not found');
-        }
-
-        if (status && status !== ticket.status) {
-            ticket.status = status;
-            ticket.statusHistory.push({
-                status,
-                timestamp: new Date(),
-                note: `Status updated to ${status}`
-            });
-        }
-
-        if (assignedTechnician) ticket.assignedTechnician = assignedTechnician;
-        if (scheduledVisit) ticket.scheduledVisit = scheduledVisit;
-        if (resolution) ticket.resolution = resolution;
-
-        await ticket.save();
-
-        sendResponse(res, 200, true, 'Ticket updated successfully', { ticket });
-    } catch (error) {
-        next(error);
-    }
-};
