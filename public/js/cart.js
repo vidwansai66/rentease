@@ -13,8 +13,7 @@ const cartUtils = (() => {
         let cart = getCart();
         const existing = cart.find(i => 
             i.productId === item.productId && 
-            i.selectedPlan.duration === item.selectedPlan.duration &&
-            JSON.stringify(i.customization || {}) === JSON.stringify(item.customization || {})
+            i.selectedPlan.duration === item.selectedPlan.duration
         );
 
         if (existing) {
@@ -141,15 +140,14 @@ const cartUtils = (() => {
         document.getElementById('cartSidebarTotal').textContent = `₹${subtotal.toLocaleString()}`;
     };
 
-    const addToCart = (product, plan, quantity = 1, customization = {}) => {
+    const addToCart = (product, plan, quantity = 1) => {
         addItem({
             productId: product._id,
             productName: product.name,
             productImage: product.images[0],
             securityDeposit: product.securityDeposit,
             selectedPlan: plan,
-            quantity: quantity,
-            customization: customization
+            quantity: quantity
         });
         openSidebar();
         Toast.success('Added to cart');
