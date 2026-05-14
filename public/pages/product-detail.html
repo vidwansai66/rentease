@@ -187,6 +187,13 @@
                     <div class="plan-grid" id="pPlanGrid"></div>
                 </div>
 
+                <div class="mb-8" id="customizationSection" style="display: none;">
+                    <h4 class="mb-4">2. Customize Your Item</h4>
+                    <div id="customizationOptions" class="flex-direction-column gap-4">
+                        <!-- Customization options will be injected here -->
+                    </div>
+                </div>
+
                 <div class="price-summary">
                     <div class="summary-row">
                         <span>Monthly Rent</span>
@@ -321,6 +328,56 @@
 
             updatePriceSummary();
             updateAvailabilityUI();
+            renderCustomizations();
+        }
+
+        function renderCustomizations() {
+            const p = currentProduct;
+            const section = document.getElementById('customizationSection');
+            const container = document.getElementById('customizationOptions');
+
+            if (!p.customizationOptions || p.customizationOptions.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+
+            section.style.display = 'block';
+            container.innerHTML = p.customizationOptions.map(opt => `
+                <div class="mb-4">
+                    <label class="block text-sm font-bold mb-2">${opt.type}</label>
+                    <div class="flex-start gap-2 flex-wrap">
+                        ${opt.options.map((val, i) => `
+                            <button class="btn btn-outline btn-sm customization-btn" 
+                                    data-type="${opt.type}" 
+                                    data-value="${val}"
+                                    onclick="selectCustomization(this)">
+                                ${val}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+            
+            // Select first option by default
+            container.querySelectorAll('.mb-4').forEach(group => {
+                group.querySelector('.customization-btn').click();
+            });
+        }
+
+        let selectedCustomizations = {};
+        function selectCustomization(btn) {
+            const type = btn.dataset.type;
+            const val = btn.dataset.value;
+            
+            selectedCustomizations[type] = val;
+            
+            // UI Update
+            btn.parentElement.querySelectorAll('.customization-btn').forEach(b => {
+                b.classList.remove('btn-primary');
+                b.classList.add('btn-outline');
+            });
+            btn.classList.remove('btn-outline');
+            btn.classList.add('btn-primary');
         }
 
         function renderGallery(images) {
@@ -404,7 +461,7 @@
 
         function handleAddToCart() {
             if (!currentProduct) return;
-            cartUtils.addToCart(currentProduct, currentProduct.rentalPlans[selectedPlanIdx], currentQty);
+            cartUtils.addToCart(currentProduct, currentProduct.rentalPlans[selectedPlanIdx], currentQty, selectedCustomizations);
         }
 
         async function fetchRelated() {

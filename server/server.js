@@ -15,6 +15,8 @@ const maintenanceRoutes = require('./routes/maintenanceRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const userRoutes = require('./routes/userRoutes');
 const vendorRoutes = require('./routes/vendorRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
+const subscriptionRoutes = require('./routes/subscriptionRoutes');
 
 // Initialize app
 const app = express();
@@ -40,6 +42,8 @@ app.use('/api/v1/maintenance', maintenanceRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/vendor', vendorRoutes);
+app.use('/api/v1/payments', paymentRoutes);
+app.use('/api/v1/subscriptions', subscriptionRoutes);
 
 // Health check route
 app.get('/api/v1/health', (req, res) => {

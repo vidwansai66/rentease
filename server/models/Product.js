@@ -86,7 +86,15 @@ const productSchema = new mongoose.Schema({
     ratings: {
         average: { type: Number, default: 0 },
         count: { type: Number, default: 0 }
-    }
+    },
+    isSmartAppliance: {
+        type: Boolean,
+        default: false
+    },
+    customizationOptions: [{
+        type: { type: String }, // e.g. "Color", "Fabric"
+        options: [String] // e.g. ["Midnight Black", "Arctic White"]
+    }]
 }, {
     timestamps: true
 });

@@ -68,7 +68,13 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
-    lastLogin: Date
+    lastLogin: Date,
+    subscription: {
+        tier: { type: String, enum: ['Basic', 'Pro', 'Elite'], default: 'Basic' },
+        status: { type: String, enum: ['active', 'inactive', 'canceled'], default: 'inactive' },
+        validUntil: Date,
+        stripeCustomerId: String
+    }
 }, {
     timestamps: true
 });

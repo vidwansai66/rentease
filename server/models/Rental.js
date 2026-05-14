@@ -56,7 +56,24 @@ const rentalSchema = new mongoose.Schema({
         extendedBy: Number, // months
         newEndDate: Date,
         timestamp: { type: Date, default: Date.now }
-    }]
+    }],
+    autoRenew: {
+        type: Boolean,
+        default: true
+    },
+    smartStatus: {
+        status: { type: String, enum: ['online', 'offline', 'maintenance'], default: 'online' },
+        lastUpdate: Date,
+        metrics: {
+            usageHours: Number,
+            efficiency: Number,
+            healthScore: Number
+        }
+    },
+    customization: {
+        type: Map,
+        of: String
+    }
 }, {
     timestamps: true
 });
